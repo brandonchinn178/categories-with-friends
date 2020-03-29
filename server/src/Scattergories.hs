@@ -80,15 +80,18 @@ servePlayer activeGameVar playerName playerConn = do
 -- new arrival.
 setupPlayer :: PlayerName -> Connection -> ActiveGame -> IO ActiveGame
 setupPlayer playerName playerConn activeGame = do
-  when (playerName `Map.member` playerConns activeGame) $
+  when isPlayerAlreadyConnected $
     throwIO $ CannotJoinGameError "you're already in the game"
 
-  case getStatus $ game activeGame of
-    GameStart -> notifyUpdatedPlayerList >> pure updatedActiveGame
-    _ -> if playerName `Set.member` getPlayers (game activeGame)
-      then pure activeGame
-      else throwIO $ CannotJoinGameError "game already started without you"
+  case (hasGameStarted, isPlayerInGame) of
+    (True, False) -> throwIO $ CannotJoinGameError "game already started without you"
+    (False, _) -> notifyUpdatedPlayerList >> pure updatedActiveGame
+    (_, True) -> pure activeGame
   where
+    isPlayerAlreadyConnected = playerName `Map.member` playerConns activeGame
+    hasGameStarted = isGameStarted $ game activeGame
+    isPlayerInGame = playerName `Set.member` getPlayers (game activeGame)
+
     updatedGame = initPlayer playerName (game activeGame)
     updatedActiveGame = activeGame
       { game = updatedGame
@@ -100,14 +103,12 @@ setupPlayer playerName playerConn activeGame = do
 -- | Start a new round in the game.
 startGameRound :: ActiveGame -> IO ActiveGame
 startGameRound activeGame@ActiveGame{game} = do
-  nextRoundNum <- case getStatus game of
-    GameStart -> return 0
-    GameRound RoundInfo{roundNum} RoundEnd -> return $ roundNum + 1
-    GameRound _ _ -> throwIO $ UnexpectedStartRoundError "round isn't over"
-    GameDone -> throwIO $ UnexpectedStartRoundError "game is done"
+  when (isGameDone game) $ throwIO $ UnexpectedStartRoundError "game is done"
+  when (maybe False isRoundDone $ getLastRound game) $
+    throwIO $ UnexpectedStartRoundError "round isn't over"
 
-  newRound <- generateRound nextRoundNum
-  let activeGame' = activeGame { game = startRound newRound game }
+  (game', newRound) <- startRound game
+  let activeGame' = activeGame { game = game' }
 
   sendToAll activeGame' $ StartRoundMessage newRound
   return activeGame'

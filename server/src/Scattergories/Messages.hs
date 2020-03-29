@@ -9,12 +9,12 @@ module Scattergories.Messages
 
 import Data.Aeson (Value(..), object, (.=))
 
-import Scattergories.Game (PlayerName, RoundInfo(..))
+import Scattergories.Game (GameRound(..), PlayerName)
 
 data Message
   = RefreshPlayerListMessage PlayerName [PlayerName]
     -- ^ send the current host and player list to everyone
-  | StartRoundMessage RoundInfo
+  | StartRoundMessage GameRound
     -- ^ send information to start a round
   | EndGameMessage
     -- ^ tell everyone to end their games
@@ -34,7 +34,7 @@ mkMessage message =
         [ "players" .= players
         , "host" .= host
         ]
-      StartRoundMessage RoundInfo{..} ->
+      StartRoundMessage GameRound{..} ->
         [ "round_num" .= roundNum
         , "categories" .= categories
         , "letter" .= letter

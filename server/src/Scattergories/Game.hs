@@ -5,23 +5,26 @@
 module Scattergories.Game
   ( Game
   , PlayerName
-  , GameStatus(..)
-  , RoundInfo(..)
-  , RoundStatus(..)
   , createGame
+  , isGameStarted
+  , isGameDone
   , markGameDone
-  , getStatus
   , getHost
   , initPlayer
   , getPlayers
-  , generateRound
   , startRound
+  , getLastRound
   , Category
   , Answer
+  , GameRound(..)
+  , Vote(..)
+  , isRoundDone
   ) where
 
 import Control.Monad.Random (getRandomR)
 import Data.FileEmbed (embedStringFile)
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
@@ -33,45 +36,29 @@ import System.Random.Shuffle (shuffleM)
 type PlayerName = Text
 
 data Game = Game
-  { status  :: GameStatus
-  , host    :: PlayerName
+  { host    :: PlayerName
   , players :: Set PlayerName
+  , rounds  :: [GameRound]
+  , isDone  :: Bool
   }
   deriving (Show)
 
-data GameStatus
-  = GameStart
-  | GameRound RoundInfo RoundStatus
-  | GameDone
-  deriving (Show, Eq)
-
-data RoundInfo = RoundInfo
-  { roundNum   :: Int
-  , categories :: [Category]
-  , letter     :: Char
-  } deriving (Show, Eq)
-
-data RoundStatus
-  = WriteAnswers
-    -- ^ the part of the round where people write their answers
-  | ValidateAnswers
-    -- ^ the part of the round where people validate each others' answers
-  | RoundEnd
-    -- ^ the end of the round
-  deriving (Show, Eq)
-
 createGame :: PlayerName -> Game
 createGame host = Game
-  { status = GameStart
-  , host
+  { host
   , players = Set.empty
+  , rounds = []
+  , isDone = False
   }
 
-markGameDone :: Game -> Game
-markGameDone game = game { status = GameDone }
+isGameStarted :: Game -> Bool
+isGameStarted = null . rounds
 
-getStatus :: Game -> GameStatus
-getStatus = status
+isGameDone :: Game -> Bool
+isGameDone Game{isDone} = isDone
+
+markGameDone :: Game -> Game
+markGameDone game = game { isDone = True }
 
 getHost :: Game -> PlayerName
 getHost = host
@@ -82,21 +69,48 @@ initPlayer playerName game = game { players = Set.insert playerName (players gam
 getPlayers :: Game -> Set PlayerName
 getPlayers = players
 
-generateRound :: Int -> IO RoundInfo
-generateRound roundNum = do
+startRound :: Game -> IO (Game, GameRound)
+startRound game = do
+  let nextRoundNum = maybe 0 ((+ 1) . roundNum) $ getLastRound game
+
   categories <- take numCategories <$> shuffleM allCategories
   letter <- getRandomR ('A', 'Z')
-  return RoundInfo{..}
+  let gameRound = GameRound
+        { roundNum = nextRoundNum
+        , answers = Map.empty
+        , ..
+        }
+      updatedGame = game { rounds = rounds game ++ [gameRound] }
+
+  return (updatedGame, gameRound)
   where
     numCategories = 12
 
-startRound :: RoundInfo -> Game -> Game
-startRound roundInfo game = game { status = GameRound roundInfo WriteAnswers }
+getLastRound :: Game -> Maybe GameRound
+getLastRound Game{rounds} = if null rounds then Nothing else Just $ last rounds
 
-{- Scattergories logic -}
+{- Game rounds -}
 
 type Category = Text
 type Answer = Text
+
+data GameRound = GameRound
+  { roundNum   :: Int
+  , categories :: [Category]
+  , letter     :: Char
+  , answers    :: Map PlayerName (Map Category (Answer, Vote))
+    -- ^ Invariant: Either all votes are NO_VOTE, or none are
+  } deriving (Show)
+
+data Vote = NO_VOTE | INVALID | VALID
+  deriving (Show, Eq)
+
+isRoundDone :: GameRound -> Bool
+isRoundDone = all (all isAnswerVoted) . answers
+  where
+    isAnswerVoted = (/= NO_VOTE) . snd
+
+{- Data -}
 
 allCategories :: [Category]
 allCategories = Text.lines $(embedStringFile "../data/categories.txt")
