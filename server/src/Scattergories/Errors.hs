@@ -8,13 +8,14 @@ module Scattergories.Errors
 
 import Control.Exception (Exception, SomeException, displayException)
 import Data.Aeson (Value, object, (.=))
+import Data.Text (Text)
 
 data ServerError
-  = NonHostStartedRoundError
+  = UnexpectedStartRoundError Text
   | UnexpectedServerError SomeException
 
 instance Show ServerError where
-  show NonHostStartedRoundError = "non_host_started_round"
+  show UnexpectedStartRoundError{} = "unexpected_start_round"
   show UnexpectedServerError{} = "server_error"
 
 instance Exception ServerError
@@ -25,5 +26,5 @@ mkError err =
   in object $ errorEntry : mkErrorPayload err
   where
     mkErrorPayload = \case
-      NonHostStartedRoundError -> []
+      UnexpectedStartRoundError msg -> [ "message" .= msg ]
       UnexpectedServerError e -> [ "message" .= displayException e ]

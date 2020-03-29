@@ -6,8 +6,8 @@
 {-# LANGUAGE TypeOperators #-}
 
 import Control.Concurrent.MVar (MVar, modifyMVar, modifyMVar_, newMVar)
-import Control.Exception (fromException, try)
-import Control.Monad (forM_)
+import Control.Exception (fromException, throwIO, try)
+import Control.Monad (forM_, unless)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT, asks, runReaderT)
 import Data.Aeson (FromJSON, ToJSON, eitherDecode', encode)
@@ -34,14 +34,18 @@ import Scattergories
     , GameStatus(..)
     , Message(..)
     , PlayerName
+    , RoundInfo(..)
+    , RoundStatus(..)
     , ServerError(..)
     , createGame
+    , generateRound
     , getHost
     , getPlayers
     , getStatus
     , initPlayer
     , mkError
     , mkMessage
+    , startRound
     )
 
 type API =
@@ -89,9 +93,12 @@ serveGame gameId playerName playerConn = do
 
   liftIO $ withPingThread playerConn pingDelay postPing $ runLoop $ do
     event <- receiveJSONData playerConn
-    liftIO $ modifyMVar platformGameVar $ \PlatformGame{game, playerConns} ->
+    modifyMVar_ platformGameVar $ \platformGame ->
       case event of
-        StartRoundEvent{} -> undefined
+        StartRoundEvent -> do
+          unless (getHost (game platformGame) == playerName) $
+            throwIO $ UnexpectedStartRoundError "player is not the host"
+          startGameRound platformGame
         SubmitAnswersEvent{} -> undefined
         EndValidationEvent{} -> undefined
         EndGameEvent{} -> undefined
@@ -128,6 +135,21 @@ setupPlayer playerName playerConn platformGame =
       }
     notifyUpdatedPlayerList = sendToAll updatedPlatformGame $
       RefreshPlayerListMessage (getHost updatedGame) (Set.toList $ getPlayers updatedGame)
+
+-- | Start a new round in the game.
+startGameRound :: PlatformGame -> IO PlatformGame
+startGameRound platformGame@PlatformGame{game} = do
+  nextRoundNum <- case getStatus game of
+    GameStart -> return 0
+    GameRound RoundInfo{roundNum} RoundEnd -> return $ roundNum + 1
+    GameRound _ _ -> throwIO $ UnexpectedStartRoundError "round isn't over"
+    GameDone -> throwIO $ UnexpectedStartRoundError "game is done"
+
+  newRound <- generateRound nextRoundNum
+  let platformGame' = platformGame { game = startRound newRound game }
+
+  sendToAll platformGame' $ StartRoundMessage newRound
+  return platformGame'
 
 {- WebSocket helpers -}
 

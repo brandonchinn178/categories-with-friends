@@ -1,5 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Scattergories.Messages
   ( Message(..)
@@ -8,14 +9,17 @@ module Scattergories.Messages
 
 import Data.Aeson (Value(..), object, (.=))
 
-import Scattergories.Game (PlayerName)
+import Scattergories.Game (PlayerName, RoundInfo(..))
 
 data Message
   = RefreshPlayerListMessage PlayerName [PlayerName]
     -- ^ send the current host and player list to everyone
+  | StartRoundMessage RoundInfo
+    -- ^ send information to start a round
 
 instance Show Message where
   show RefreshPlayerListMessage{} = "refresh_player_list"
+  show StartRoundMessage{} = "start_round"
 
 mkMessage :: Message -> Value
 mkMessage message =
@@ -26,4 +30,9 @@ mkMessage message =
       RefreshPlayerListMessage host players ->
         [ "players" .= players
         , "host" .= host
+        ]
+      StartRoundMessage RoundInfo{..} ->
+        [ "round_num" .= roundNum
+        , "categories" .= categories
+        , "letter" .= letter
         ]

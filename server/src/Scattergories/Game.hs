@@ -14,6 +14,7 @@ module Scattergories.Game
   , initPlayer
   , getPlayers
   , generateRound
+  , startRound
   , Category
   , Answer
   ) where
@@ -54,6 +55,8 @@ data RoundStatus
     -- ^ the part of the round where people write their answers
   | ValidateAnswers
     -- ^ the part of the round where people validate each others' answers
+  | RoundEnd
+    -- ^ the end of the round
   deriving (Show, Eq)
 
 createGame :: PlayerName -> Game
@@ -82,6 +85,9 @@ generateRound roundNum = do
   return RoundInfo{..}
   where
     numCategories = 12
+
+startRound :: RoundInfo -> Game -> Game
+startRound roundInfo game = game { status = GameRound roundInfo WriteAnswers }
 
 {- Scattergories logic -}
 
