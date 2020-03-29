@@ -12,13 +12,13 @@ import Data.Text (Text)
 data ServerError
   = NotHostError
   | CannotJoinGameError Text
-  | UnexpectedStartRoundError Text
+  | UnexpectedEventError Text Text
   | UnexpectedServerError SomeException
 
 instance Show ServerError where
   show NotHostError = "not_host"
   show CannotJoinGameError{} = "cannot_join_game"
-  show UnexpectedStartRoundError{} = "unexpected_start_round"
+  show UnexpectedEventError{} = "unexpected_event"
   show UnexpectedServerError{} = "server_error"
 
 instance Exception ServerError
@@ -31,5 +31,8 @@ instance ToJSON ServerError where
       mkErrorPayload = \case
         NotHostError -> []
         CannotJoinGameError msg -> [ "message" .= msg ]
-        UnexpectedStartRoundError msg -> [ "message" .= msg ]
+        UnexpectedEventError event msg ->
+          [ "event" .= event
+          , "message" .= msg
+          ]
         UnexpectedServerError e -> [ "message" .= displayException e ]

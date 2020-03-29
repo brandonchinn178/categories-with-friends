@@ -118,11 +118,11 @@ setupPlayer playerName playerConn activeGame@ActiveGameState{..} = do
 startGameRound :: ActiveGameState status -> IO (ActiveGameState 'GameInProgress)
 startGameRound activeGame@ActiveGameState{game} = do
   (game', newRound) <- case getStatus game of
-    SGameDone -> throwIO $ UnexpectedStartRoundError "game is done"
+    SGameDone -> throwIO $ UnexpectedEventError "start_round" "game is done"
     SGameLoading -> startRound game
     SGameInProgress -> do
       when (isRoundDone $ getCurrRound game) $
-        throwIO $ UnexpectedStartRoundError "round isn't over"
+        throwIO $ UnexpectedEventError "start_round" "round isn't over"
       startRound game
 
   let activeGame' = activeGame { game = game' }
