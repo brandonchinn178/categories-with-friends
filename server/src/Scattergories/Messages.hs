@@ -16,10 +16,13 @@ data Message
     -- ^ send the current host and player list to everyone
   | StartRoundMessage RoundInfo
     -- ^ send information to start a round
+  | EndGameMessage
+    -- ^ tell everyone to end their games
 
 instance Show Message where
   show RefreshPlayerListMessage{} = "refresh_player_list"
   show StartRoundMessage{} = "start_round"
+  show EndGameMessage = "end_game"
 
 mkMessage :: Message -> Value
 mkMessage message =
@@ -36,3 +39,4 @@ mkMessage message =
         , "categories" .= categories
         , "letter" .= letter
         ]
+      EndGameMessage -> []

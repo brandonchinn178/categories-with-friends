@@ -43,6 +43,7 @@ import Scattergories
     , getPlayers
     , getStatus
     , initPlayer
+    , markGameDone
     , mkError
     , mkMessage
     , startRound
@@ -99,7 +100,7 @@ serveGame gameId playerName playerConn = do
         StartRoundEvent -> checkHost >> startGameRound platformGame
         SubmitAnswersEvent{} -> undefined
         EndValidationEvent{} -> undefined
-        EndGameEvent{} -> undefined
+        EndGameEvent -> checkHost >> endGame platformGame
   where
     pingDelay = 30 -- seconds
     postPing = return ()
@@ -147,6 +148,13 @@ startGameRound platformGame@PlatformGame{game} = do
   let platformGame' = platformGame { game = startRound newRound game }
 
   sendToAll platformGame' $ StartRoundMessage newRound
+  return platformGame'
+
+-- | End the game.
+endGame :: PlatformGame -> IO PlatformGame
+endGame platformGame@PlatformGame{game} = do
+  let platformGame' = platformGame { game = markGameDone game }
+  sendToAll platformGame' EndGameMessage
   return platformGame'
 
 {- WebSocket helpers -}

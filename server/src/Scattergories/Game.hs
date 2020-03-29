@@ -9,6 +9,7 @@ module Scattergories.Game
   , RoundInfo(..)
   , RoundStatus(..)
   , createGame
+  , markGameDone
   , getStatus
   , getHost
   , initPlayer
@@ -65,6 +66,9 @@ createGame host = Game
   , host
   , players = Set.empty
   }
+
+markGameDone :: Game -> Game
+markGameDone game = game { status = GameDone }
 
 getStatus :: Game -> GameStatus
 getStatus = status
