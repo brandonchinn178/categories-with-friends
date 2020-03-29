@@ -23,6 +23,7 @@ dependencies:
   - MonadRandom
   - random-shuffle
   - text
+  - websockets
 
 library:
   source-dirs: src
@@ -34,5 +35,4 @@ executable:
     - scattergories
     - servant-server
     - servant-websockets
-    - websockets
     - warp
