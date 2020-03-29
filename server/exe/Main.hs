@@ -33,7 +33,10 @@ main :: IO ()
 main = do
   platformVar <- newMVar Map.empty
 
-  run 8000 $ app platformVar
+  putStrLn $ "Running on port " ++ show port
+  run port $ app platformVar
+  where
+    port = 8000
 
 app :: MVar Platform -> Application
 app platformVar = serve (Proxy @API) $ serverAPI platformVar
