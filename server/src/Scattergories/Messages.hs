@@ -4,10 +4,9 @@
 
 module Scattergories.Messages
   ( Message(..)
-  , mkMessage
   ) where
 
-import Data.Aeson (Value(..), object, (.=))
+import Data.Aeson (ToJSON(..), object, (.=))
 import Data.Time (defaultTimeLocale, formatTime, iso8601DateFormat)
 
 import Scattergories.Game (GameRound(..), PlayerName)
@@ -25,22 +24,22 @@ instance Show Message where
   show StartRoundMessage{} = "start_round"
   show EndGameMessage = "end_game"
 
-mkMessage :: Message -> Value
-mkMessage message =
-  let eventEntry = "event" .= show message
-  in object $ eventEntry : mkMessagePayload message
-  where
-    mkMessagePayload = \case
-      RefreshPlayerListMessage host players ->
-        [ "players" .= players
-        , "host" .= host
-        ]
-      StartRoundMessage GameRound{..} ->
-        [ "round_num" .= roundNum
-        , "categories" .= categories
-        , "letter" .= letter
-        , "end_time" .= formatISO8601 endTime
-        ]
-      EndGameMessage -> []
+instance ToJSON Message where
+  toJSON message =
+    let eventEntry = "event" .= show message
+    in object $ eventEntry : mkMessagePayload message
+    where
+      mkMessagePayload = \case
+        RefreshPlayerListMessage host players ->
+          [ "players" .= players
+          , "host" .= host
+          ]
+        StartRoundMessage GameRound{..} ->
+          [ "round_num" .= roundNum
+          , "categories" .= categories
+          , "letter" .= letter
+          , "end_time" .= formatISO8601 endTime
+          ]
+        EndGameMessage -> []
 
-    formatISO8601 = formatTime defaultTimeLocale (iso8601DateFormat (Just "%H:%M:%S"))
+      formatISO8601 = formatTime defaultTimeLocale (iso8601DateFormat (Just "%H:%M:%S"))

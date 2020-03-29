@@ -3,11 +3,10 @@
 
 module Scattergories.Errors
   ( ServerError(..)
-  , mkError
   ) where
 
 import Control.Exception (Exception, SomeException, displayException)
-import Data.Aeson (Value, object, (.=))
+import Data.Aeson (ToJSON(..), object, (.=))
 import Data.Text (Text)
 
 data ServerError
@@ -24,13 +23,13 @@ instance Show ServerError where
 
 instance Exception ServerError
 
-mkError :: ServerError -> Value
-mkError err =
-  let errorEntry = "error" .= show err
-  in object $ errorEntry : mkErrorPayload err
-  where
-    mkErrorPayload = \case
-      NotHostError -> []
-      CannotJoinGameError msg -> [ "message" .= msg ]
-      UnexpectedStartRoundError msg -> [ "message" .= msg ]
-      UnexpectedServerError e -> [ "message" .= displayException e ]
+instance ToJSON ServerError where
+  toJSON err =
+    let errorEntry = "error" .= show err
+    in object $ errorEntry : mkErrorPayload err
+    where
+      mkErrorPayload = \case
+        NotHostError -> []
+        CannotJoinGameError msg -> [ "message" .= msg ]
+        UnexpectedStartRoundError msg -> [ "message" .= msg ]
+        UnexpectedServerError e -> [ "message" .= displayException e ]

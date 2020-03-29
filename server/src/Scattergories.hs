@@ -70,7 +70,7 @@ servePlayer activeGameVar playerName playerConn = do
                 }
           _ -> do
             let serverErr = fromMaybe (UnexpectedServerError e) (fromException e)
-            sendJSONData playerConn $ mkError serverErr
+            sendJSONData playerConn serverErr
             runLoop m
       Right _ -> runLoop m
 
@@ -131,4 +131,4 @@ sendJSONData conn = sendTextData conn . encode
 sendToAll :: ActiveGame -> Message -> IO ()
 sendToAll ActiveGame{playerConns} message =
   forM_ (Map.elems playerConns) $ \conn ->
-    sendJSONData conn $ mkMessage message
+    sendJSONData conn message
