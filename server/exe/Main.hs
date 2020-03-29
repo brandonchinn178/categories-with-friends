@@ -16,7 +16,13 @@ import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Network.Wai.Handler.Warp (run)
-import Network.WebSockets (Connection, ConnectionException(..), receiveData, sendTextData, withPingThread)
+import Network.WebSockets
+    ( Connection
+    , ConnectionException(..)
+    , receiveData
+    , sendTextData
+    , withPingThread
+    )
 import Servant hiding (Handler, Server)
 import qualified Servant
 import Servant.API.WebSocket (WebSocket)
@@ -120,6 +126,7 @@ serveGame gameId playerName playerConn = do
 
 {- Servant monad -}
 
+{-# ANN HandlerEnv ("Hlint: ignore Use newtype instead of data" :: String) #-}
 data HandlerEnv = HandlerEnv
   { envPlatform :: MVar Platform
   }
@@ -144,5 +151,5 @@ loadGame gameId newGame = do
     case Map.lookup gameId platform of
       Nothing -> do
         platformGameVar <- newMVar $ PlatformGame newGame Map.empty
-        return $ (Map.insert gameId platformGameVar platform, platformGameVar)
+        return (Map.insert gameId platformGameVar platform, platformGameVar)
       Just platformGameVar -> return (platform, platformGameVar)
