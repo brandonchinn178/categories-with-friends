@@ -25,6 +25,7 @@ import Control.Monad.Random (getRandomR)
 import Data.FileEmbed (embedStringFile)
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Maybe (isNothing)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
@@ -53,7 +54,7 @@ createGame host = Game
   }
 
 isGameStarted :: Game -> Bool
-isGameStarted = null . rounds
+isGameStarted = isNothing . getLastRound
 
 isGameDone :: Game -> Bool
 isGameDone Game{isDone} = isDone
@@ -89,6 +90,7 @@ startRound game = do
     numCategories = 12
     roundDuration = 3 * 60 -- 3 minutes
 
+-- | If the game hasn't started, return Nothing. Otherwise, return the latest round.
 getLastRound :: Game -> Maybe GameRound
 getLastRound Game{rounds} = if null rounds then Nothing else Just $ last rounds
 

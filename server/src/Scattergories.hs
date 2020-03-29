@@ -1,6 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Scattergories
   ( ActiveGame
@@ -79,23 +80,30 @@ servePlayer activeGameVar playerName playerConn = do
 -- | If the game hasn't started yet, add the given player to the game and notify everyone of the
 -- new arrival.
 setupPlayer :: PlayerName -> Connection -> ActiveGame -> IO ActiveGame
-setupPlayer playerName playerConn activeGame = do
+setupPlayer playerName playerConn activeGame@ActiveGame{..} = do
   when isPlayerAlreadyConnected $
     throwIO $ CannotJoinGameError "you're already in the game"
 
-  case (hasGameStarted, isPlayerInGame) of
-    (True, False) -> throwIO $ CannotJoinGameError "game already started without you"
-    (False, _) -> notifyUpdatedPlayerList >> pure updatedActiveGame
-    (_, True) -> pure activeGame
-  where
-    isPlayerAlreadyConnected = playerName `Map.member` playerConns activeGame
-    hasGameStarted = isGameStarted $ game activeGame
-    isPlayerInGame = playerName `Set.member` getPlayers (game activeGame)
+  case getLastRound game of
+    -- game hasn't started yet
+    Nothing -> notifyUpdatedPlayerList
 
-    updatedGame = initPlayer playerName (game activeGame)
+    -- game is in progress
+    Just gameRound -> do
+      unless isPlayerInGroup $
+        throwIO $ CannotJoinGameError "game already started without you"
+
+      sendJSONData playerConn $ StartRoundMessage gameRound
+
+  pure updatedActiveGame
+  where
+    isPlayerAlreadyConnected = playerName `Map.member` playerConns
+    isPlayerInGroup = playerName `Set.member` getPlayers game
+
+    updatedGame = initPlayer playerName game
     updatedActiveGame = activeGame
       { game = updatedGame
-      , playerConns = Map.insert playerName playerConn (playerConns activeGame)
+      , playerConns = Map.insert playerName playerConn playerConns
       }
     notifyUpdatedPlayerList = sendToAll updatedActiveGame $
       RefreshPlayerListMessage (getHost updatedGame) (Set.toList $ getPlayers updatedGame)
