@@ -1,0 +1,9 @@
+# Mac OS
+.DS_Store
+
+# Haskell
+.stack-work/
+*.cabal
+
+# Dart
+/dist/
