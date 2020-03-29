@@ -1,6 +1,9 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Scattergories
@@ -31,30 +34,36 @@ import Scattergories.Events as X
 import Scattergories.Game as X
 import Scattergories.Messages as X
 
-data ActiveGame = ActiveGame
-  { game        :: Game
+data ActiveGameState status = ActiveGameState
+  { game        :: Game status
   , playerConns :: Map PlayerName Connection
   }
 
+-- | An ActiveGameState that forgot what its status is.
+data ActiveGame where
+  ActiveGame :: forall status. ActiveGameState status -> ActiveGame
+
 initGameWithHost :: PlayerName -> ActiveGame
-initGameWithHost host = ActiveGame
-  { game = createGame host
-  , playerConns = Map.empty
-  }
+initGameWithHost host = ActiveGame $
+  ActiveGameState
+    { game = createGame host
+    , playerConns = Map.empty
+    }
 
 servePlayer :: MVar ActiveGame -> PlayerName -> Connection -> IO ()
 servePlayer activeGameVar playerName playerConn = do
-  modifyMVar_ activeGameVar $ setupPlayer playerName playerConn
+  modifyMVar_ activeGameVar $ \(ActiveGame activeGame) ->
+    ActiveGame <$> setupPlayer playerName playerConn activeGame
 
   withPingThread playerConn pingDelay postPing $ runLoop $ do
     event <- receiveJSONData playerConn
-    modifyMVar_ activeGameVar $ \activeGame -> do
+    modifyMVar_ activeGameVar $ \(ActiveGame activeGame) -> do
       let checkHost = unless (getHost (game activeGame) == playerName) $ throwIO NotHostError
       case event of
-        StartRoundEvent -> checkHost >> startGameRound activeGame
+        StartRoundEvent -> fmap ActiveGame $ checkHost >> startGameRound activeGame
         SubmitAnswersEvent{} -> undefined
         EndValidationEvent{} -> undefined
-        EndGameEvent -> checkHost >> endGame activeGame
+        EndGameEvent -> fmap ActiveGame $ checkHost >> endGame activeGame
   where
     pingDelay = 30 -- seconds
     postPing = return ()
@@ -65,8 +74,8 @@ servePlayer activeGameVar playerName playerConn = do
       Left e ->
         case fromException e of
           Just CloseRequest{} ->
-            modifyMVar_ activeGameVar $ \activeGame ->
-              pure activeGame
+            modifyMVar_ activeGameVar $ \(ActiveGame activeGame) ->
+              pure $ ActiveGame activeGame
                 { playerConns = Map.delete playerName (playerConns activeGame)
                 }
           _ -> do
@@ -79,51 +88,50 @@ servePlayer activeGameVar playerName playerConn = do
 
 -- | If the game hasn't started yet, add the given player to the game and notify everyone of the
 -- new arrival.
-setupPlayer :: PlayerName -> Connection -> ActiveGame -> IO ActiveGame
-setupPlayer playerName playerConn activeGame@ActiveGame{..} = do
+setupPlayer :: PlayerName -> Connection -> ActiveGameState status -> IO (ActiveGameState status)
+setupPlayer playerName playerConn activeGame@ActiveGameState{..} = do
   when isPlayerAlreadyConnected $
     throwIO $ CannotJoinGameError "you're already in the game"
 
-  case getLastRound game of
-    -- game hasn't started yet
-    Nothing -> notifyUpdatedPlayerList
-
-    -- game is in progress
-    Just gameRound -> do
+  case getStatus game of
+    SGameLoading -> do
+      let updatedGame = initPlayer playerName game
+          updatedActiveGame = activeGame
+            { game = updatedGame
+            , playerConns = Map.insert playerName playerConn playerConns
+            }
+      sendToAll updatedActiveGame $
+        RefreshPlayerListMessage (getHost updatedGame) (Set.toList $ getPlayers updatedGame)
+      return updatedActiveGame
+    SGameDone -> throwIO $ CannotJoinGameError "game is over"
+    SGameInProgress -> do
       unless isPlayerInGroup $
         throwIO $ CannotJoinGameError "game already started without you"
 
-      sendJSONData playerConn $ StartRoundMessage gameRound
-
-  pure updatedActiveGame
+      sendJSONData playerConn $ StartRoundMessage $ getCurrRound game
+      return activeGame
   where
     isPlayerAlreadyConnected = playerName `Map.member` playerConns
     isPlayerInGroup = playerName `Set.member` getPlayers game
 
-    updatedGame = initPlayer playerName game
-    updatedActiveGame = activeGame
-      { game = updatedGame
-      , playerConns = Map.insert playerName playerConn playerConns
-      }
-    notifyUpdatedPlayerList = sendToAll updatedActiveGame $
-      RefreshPlayerListMessage (getHost updatedGame) (Set.toList $ getPlayers updatedGame)
-
 -- | Start a new round in the game.
-startGameRound :: ActiveGame -> IO ActiveGame
-startGameRound activeGame@ActiveGame{game} = do
-  when (isGameDone game) $ throwIO $ UnexpectedStartRoundError "game is done"
-  when (maybe False isRoundDone $ getLastRound game) $
-    throwIO $ UnexpectedStartRoundError "round isn't over"
+startGameRound :: ActiveGameState status -> IO (ActiveGameState 'GameInProgress)
+startGameRound activeGame@ActiveGameState{game} = do
+  (game', newRound) <- case getStatus game of
+    SGameDone -> throwIO $ UnexpectedStartRoundError "game is done"
+    SGameLoading -> startRound game
+    SGameInProgress -> do
+      when (isRoundDone $ getCurrRound game) $
+        throwIO $ UnexpectedStartRoundError "round isn't over"
+      startRound game
 
-  (game', newRound) <- startRound game
   let activeGame' = activeGame { game = game' }
-
   sendToAll activeGame' $ StartRoundMessage newRound
   return activeGame'
 
 -- | End the game.
-endGame :: ActiveGame -> IO ActiveGame
-endGame activeGame@ActiveGame{game} = do
+endGame :: ActiveGameState status -> IO (ActiveGameState 'GameDone)
+endGame activeGame@ActiveGameState{game} = do
   let activeGame' = activeGame { game = markGameDone game }
   sendToAll activeGame' EndGameMessage
   return activeGame'
@@ -136,7 +144,7 @@ receiveJSONData conn = either fail return . eitherDecode' =<< receiveData conn
 sendJSONData :: ToJSON a => Connection -> a -> IO ()
 sendJSONData conn = sendTextData conn . encode
 
-sendToAll :: ActiveGame -> Message -> IO ()
-sendToAll ActiveGame{playerConns} message =
+sendToAll :: ActiveGameState status -> Message -> IO ()
+sendToAll ActiveGameState{playerConns} message =
   forM_ (Map.elems playerConns) $ \conn ->
     sendJSONData conn message

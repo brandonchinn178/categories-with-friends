@@ -1,31 +1,35 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Scattergories.Game
   ( Game
+  , GameStatus(..)
+  , SGameStatus(..)
   , PlayerName
   , createGame
-  , isGameStarted
-  , isGameDone
+  , getStatus
   , markGameDone
   , getHost
   , initPlayer
   , getPlayers
-  , startRound
-  , getLastRound
   , Category
   , Answer
   , GameRound(..)
   , Vote(..)
   , isRoundDone
+  , getCurrRound
+  , startRound
   ) where
 
 import Control.Monad.Random (getRandomR)
 import Data.FileEmbed (embedStringFile)
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Maybe (isNothing)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
@@ -37,62 +41,48 @@ import System.Random.Shuffle (shuffleM)
 
 type PlayerName = Text
 
-data Game = Game
+data Game (status :: GameStatus) = Game
   { host    :: PlayerName
   , players :: Set PlayerName
   , rounds  :: [GameRound]
-  , isDone  :: Bool
-  }
-  deriving (Show)
+    -- ^ Invariant: non-empty if status is not GameLoading
+  , status  :: SGameStatus status
+  } deriving (Show)
 
-createGame :: PlayerName -> Game
+createGame :: PlayerName -> Game 'GameLoading
 createGame host = Game
   { host
   , players = Set.empty
   , rounds = []
-  , isDone = False
+  , status = SGameLoading
   }
 
-isGameStarted :: Game -> Bool
-isGameStarted = isNothing . getLastRound
+getStatus :: Game status -> SGameStatus status
+getStatus = status
 
-isGameDone :: Game -> Bool
-isGameDone Game{isDone} = isDone
+markGameDone :: Game status -> Game 'GameDone
+markGameDone game = game { status = SGameDone }
 
-markGameDone :: Game -> Game
-markGameDone game = game { isDone = True }
-
-getHost :: Game -> PlayerName
+getHost :: Game status -> PlayerName
 getHost = host
 
-initPlayer :: PlayerName -> Game -> Game
+initPlayer :: PlayerName -> Game 'GameLoading -> Game 'GameLoading
 initPlayer playerName game = game { players = Set.insert playerName (players game) }
 
-getPlayers :: Game -> Set PlayerName
+getPlayers :: Game staus -> Set PlayerName
 getPlayers = players
 
-startRound :: Game -> IO (Game, GameRound)
-startRound game = do
-  let nextRoundNum = maybe 0 ((+ 1) . roundNum) $ getLastRound game
+{- Game status -}
 
-  categories <- take numCategories <$> shuffleM allCategories
-  letter <- getRandomR ('A', 'Z')
-  endTime <- addUTCTime roundDuration <$> getCurrentTime
-  let gameRound = GameRound
-        { roundNum = nextRoundNum
-        , answers = Map.empty
-        , ..
-        }
-      updatedGame = game { rounds = rounds game ++ [gameRound] }
+data GameStatus = GameLoading | GameInProgress | GameDone
 
-  return (updatedGame, gameRound)
-  where
-    numCategories = 12
-    roundDuration = 3 * 60 -- 3 minutes
+-- | A witness that a Game is in one of the above statuses.
+data SGameStatus (status :: GameStatus) where
+  SGameLoading :: SGameStatus 'GameLoading
+  SGameInProgress :: SGameStatus 'GameInProgress
+  SGameDone :: SGameStatus 'GameDone
 
--- | If the game hasn't started, return Nothing. Otherwise, return the latest round.
-getLastRound :: Game -> Maybe GameRound
-getLastRound Game{rounds} = if null rounds then Nothing else Just $ last rounds
+deriving instance Show (SGameStatus status)
 
 {- Game rounds -}
 
@@ -116,6 +106,37 @@ isRoundDone :: GameRound -> Bool
 isRoundDone = all (all isAnswerVoted) . answers
   where
     isAnswerVoted = (/= NO_VOTE) . snd
+
+getCurrRound :: Game 'GameInProgress -> GameRound
+getCurrRound = last . rounds
+
+class CanBeStarted (status :: GameStatus) where
+  addRound :: GameRound -> Game status -> Game 'GameInProgress
+  getNextRoundNum :: Game status -> Int
+
+instance CanBeStarted 'GameLoading where
+  addRound gameRound Game{..} = Game{ rounds = [gameRound], status = SGameInProgress, .. }
+  getNextRoundNum = const 0
+
+instance CanBeStarted 'GameInProgress where
+  addRound gameRound game = game { rounds = rounds game ++ [gameRound] }
+  getNextRoundNum = (+ 1) . roundNum . getCurrRound
+
+startRound :: CanBeStarted status => Game status -> IO (Game 'GameInProgress, GameRound)
+startRound game = do
+  categories <- take numCategories <$> shuffleM allCategories
+  letter <- getRandomR ('A', 'Z')
+  endTime <- addUTCTime roundDuration <$> getCurrentTime
+  let gameRound = GameRound
+        { roundNum = getNextRoundNum game
+        , answers = Map.empty
+        , ..
+        }
+
+  return (addRound gameRound game, gameRound)
+  where
+    numCategories = 12
+    roundDuration = 3 * 60 -- 3 minutes
 
 {- Data -}
 
