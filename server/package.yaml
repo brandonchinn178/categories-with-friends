@@ -7,6 +7,11 @@ author:
 maintainer:
   - Brandon Chinn <brandonchinn178@gmail.com>
 
+flags:
+  serve_static:
+    manual: true
+    default: false
+
 ghc-options:
   - -Wall
   - -Werror
@@ -36,3 +41,7 @@ executable:
     - servant-server
     - servant-websockets
     - warp
+  when:
+    - condition: flag(serve_static)
+      cpp-options:
+        - -D__SERVE_STATIC__

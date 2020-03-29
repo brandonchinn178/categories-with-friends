@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
@@ -16,8 +17,7 @@ import Scattergories (ActiveGame, PlayerName, initGameWithHost, servePlayer)
 
 type API =
        Capture "gameId" Text :> Capture "playerId" PlayerName :> WebSocket
-  :<|> "static" :> Raw
-  :<|> Raw
+  :<|> StaticAPI
 
 main :: IO ()
 main = do
@@ -26,13 +26,12 @@ main = do
   run 8000 $ app platformVar
 
 app :: MVar Platform -> Application
-app platformVar = serve (Proxy @API) $ server platformVar
+app platformVar = serve (Proxy @API) $ serverAPI platformVar
 
-server :: MVar Platform -> Server API
-server platformVar =
+serverAPI :: MVar Platform -> Server API
+serverAPI platformVar =
        serveGame platformVar
-  :<|> serveStatic
-  :<|> serveHTML
+  :<|> serverStaticAPI
 
 {- Serve websocket game -}
 
@@ -57,6 +56,16 @@ loadOrCreateGame platformVar gameId playerName =
 
 {- Serving static files -}
 
+#ifdef __SERVE_STATIC__
+type StaticAPI =
+       "static" :> Raw
+  :<|> Raw
+
+serverStaticAPI :: Server StaticAPI
+serverStaticAPI =
+       serveStatic
+  :<|> serveHTML
+
 -- | The location of static files
 distDir :: FilePath
 distDir = "./public/"
@@ -68,3 +77,9 @@ serveStatic = serveDirectoryFileServer distDir
 -- | Serve index.html
 serveHTML :: Server Raw
 serveHTML = serveDirectoryWebApp distDir
+#else
+type StaticAPI = EmptyAPI
+
+serverStaticAPI :: Server StaticAPI
+serverStaticAPI = emptyServer
+#endif
