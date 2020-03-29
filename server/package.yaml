@@ -28,6 +28,7 @@ dependencies:
   - MonadRandom
   - random-shuffle
   - text
+  - time
   - websockets
 
 library:

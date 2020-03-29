@@ -8,6 +8,7 @@ module Scattergories.Messages
   ) where
 
 import Data.Aeson (Value(..), object, (.=))
+import Data.Time (defaultTimeLocale, formatTime, iso8601DateFormat)
 
 import Scattergories.Game (GameRound(..), PlayerName)
 
@@ -38,5 +39,8 @@ mkMessage message =
         [ "round_num" .= roundNum
         , "categories" .= categories
         , "letter" .= letter
+        , "end_time" .= formatISO8601 endTime
         ]
       EndGameMessage -> []
+
+    formatISO8601 = formatTime defaultTimeLocale (iso8601DateFormat (Just "%H:%M:%S"))

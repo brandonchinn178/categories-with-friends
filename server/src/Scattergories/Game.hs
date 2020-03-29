@@ -29,6 +29,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as Text
+import Data.Time (UTCTime, addUTCTime, getCurrentTime)
 import System.Random.Shuffle (shuffleM)
 
 {- Game infrastructure -}
@@ -75,6 +76,7 @@ startRound game = do
 
   categories <- take numCategories <$> shuffleM allCategories
   letter <- getRandomR ('A', 'Z')
+  endTime <- addUTCTime roundDuration <$> getCurrentTime
   let gameRound = GameRound
         { roundNum = nextRoundNum
         , answers = Map.empty
@@ -85,6 +87,7 @@ startRound game = do
   return (updatedGame, gameRound)
   where
     numCategories = 12
+    roundDuration = 3 * 60 -- 3 minutes
 
 getLastRound :: Game -> Maybe GameRound
 getLastRound Game{rounds} = if null rounds then Nothing else Just $ last rounds
@@ -100,6 +103,8 @@ data GameRound = GameRound
   , letter     :: Char
   , answers    :: Map PlayerName (Map Category (Answer, Vote))
     -- ^ Invariant: Either all votes are NO_VOTE, or none are
+  , endTime    :: UTCTime
+    -- ^ End of the answering round
   } deriving (Show)
 
 data Vote = NO_VOTE | INVALID | VALID
