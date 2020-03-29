@@ -10,7 +10,7 @@ import Control.Exception (fromException, try)
 import Control.Monad (forM_)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT, asks, runReaderT)
-import Data.Aeson (eitherDecode', encode)
+import Data.Aeson (FromJSON, ToJSON, eitherDecode', encode)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
@@ -85,17 +85,7 @@ serveHTML = serveDirectoryWebApp distDir
 serveGame :: Text -> PlayerName -> Connection -> Handler ()
 serveGame gameId playerName playerConn = do
   platformGameVar <- loadGame gameId (createGame playerName)
-  liftIO $ modifyMVar_ platformGameVar $ \platformGame ->
-    case getStatus (game platformGame) of
-      GameStart -> do
-        let updatedGame = initPlayer playerName (game platformGame)
-            platformGame' = platformGame
-              { game = updatedGame
-              , playerConns = Map.insert playerName playerConn (playerConns platformGame)
-              }
-        sendToAll platformGame' $ RefreshPlayerListMessage (getHost updatedGame) (Set.toList $ getPlayers updatedGame)
-        return platformGame'
-      _ -> return platformGame
+  liftIO $ modifyMVar_ platformGameVar $ setupPlayer playerName playerConn
 
   liftIO $ withPingThread playerConn pingDelay postPing $ runLoop $ do
     event <- receiveJSONData playerConn
@@ -121,12 +111,36 @@ serveGame gameId playerName playerConn = do
             runLoop m
       Right _ -> runLoop m
 
-    receiveJSONData connection = either fail return . eitherDecode' =<< receiveData connection
-    sendJSONData connection = sendTextData connection . encode
+{- Game mechanics -}
 
-    sendToAll PlatformGame{playerConns} message =
-      forM_ (Map.elems playerConns) $ \conn ->
-        sendJSONData conn $ mkMessage message
+-- | If the game hasn't started yet, add the given player to the game and notify everyone of the
+-- new arrival.
+setupPlayer :: PlayerName -> Connection -> PlatformGame -> IO PlatformGame
+setupPlayer playerName playerConn platformGame =
+  case getStatus $ game platformGame of
+    GameStart -> notifyUpdatedPlayerList >> pure updatedPlatformGame
+    _ -> pure platformGame
+  where
+    updatedGame = initPlayer playerName (game platformGame)
+    updatedPlatformGame = platformGame
+      { game = updatedGame
+      , playerConns = Map.insert playerName playerConn (playerConns platformGame)
+      }
+    notifyUpdatedPlayerList = sendToAll updatedPlatformGame $
+      RefreshPlayerListMessage (getHost updatedGame) (Set.toList $ getPlayers updatedGame)
+
+{- WebSocket helpers -}
+
+receiveJSONData :: FromJSON a => Connection -> IO a
+receiveJSONData conn = either fail return . eitherDecode' =<< receiveData conn
+
+sendJSONData :: ToJSON a => Connection -> a -> IO ()
+sendJSONData conn = sendTextData conn . encode
+
+sendToAll :: PlatformGame -> Message -> IO ()
+sendToAll PlatformGame{playerConns} message =
+  forM_ (Map.elems playerConns) $ \conn ->
+    sendJSONData conn $ mkMessage message
 
 {- Servant monad -}
 
