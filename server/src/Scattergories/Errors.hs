@@ -11,10 +11,12 @@ import Data.Aeson (Value, object, (.=))
 import Data.Text (Text)
 
 data ServerError
-  = UnexpectedStartRoundError Text
+  = NotHostError
+  | UnexpectedStartRoundError Text
   | UnexpectedServerError SomeException
 
 instance Show ServerError where
+  show NotHostError = "not_host"
   show UnexpectedStartRoundError{} = "unexpected_start_round"
   show UnexpectedServerError{} = "server_error"
 
@@ -26,5 +28,6 @@ mkError err =
   in object $ errorEntry : mkErrorPayload err
   where
     mkErrorPayload = \case
+      NotHostError -> []
       UnexpectedStartRoundError msg -> [ "message" .= msg ]
       UnexpectedServerError e -> [ "message" .= displayException e ]

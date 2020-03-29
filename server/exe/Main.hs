@@ -93,12 +93,10 @@ serveGame gameId playerName playerConn = do
 
   liftIO $ withPingThread playerConn pingDelay postPing $ runLoop $ do
     event <- receiveJSONData playerConn
-    modifyMVar_ platformGameVar $ \platformGame ->
+    modifyMVar_ platformGameVar $ \platformGame -> do
+      let checkHost = unless (getHost (game platformGame) == playerName) $ throwIO NotHostError
       case event of
-        StartRoundEvent -> do
-          unless (getHost (game platformGame) == playerName) $
-            throwIO $ UnexpectedStartRoundError "player is not the host"
-          startGameRound platformGame
+        StartRoundEvent -> checkHost >> startGameRound platformGame
         SubmitAnswersEvent{} -> undefined
         EndValidationEvent{} -> undefined
         EndGameEvent{} -> undefined
