@@ -1,0 +1,24 @@
+name: scattergories
+version: 0.0.1
+verbatim:
+  cabal-version: '>= 1.10'
+author:
+  - Brandon Chinn <brandonchinn178@gmail.com>
+maintainer:
+  - Brandon Chinn <brandonchinn178@gmail.com>
+
+ghc-options:
+  - -Wall
+  - -Werror
+  - -Wcompat
+  - -Wincomplete-record-updates
+  - -Wincomplete-uni-patterns
+  - -Wnoncanonical-monad-instances
+
+dependencies:
+  - base
+  - containers
+  - text
+
+library:
+  source-dirs: src
