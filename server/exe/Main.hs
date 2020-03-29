@@ -89,7 +89,7 @@ serveHTML = serveDirectoryWebApp distDir
 
 serveGame :: Text -> PlayerName -> Connection -> Handler ()
 serveGame gameId playerName playerConn = do
-  activeGameVar <- loadGame gameId (createGame playerName)
+  activeGameVar <- loadOrCreateGame gameId playerName
   liftIO $ modifyMVar_ activeGameVar $ setupPlayer playerName playerConn
 
   liftIO $ withPingThread playerConn pingDelay postPing $ runLoop activeGameVar $ do
@@ -197,14 +197,21 @@ data ActiveGame = ActiveGame
   , playerConns :: Map PlayerName Connection
   }
 
--- | Loads the game with the given ID. If no game is found, create the given game.
-loadGame :: Text -> Game -> Handler (MVar ActiveGame)
-loadGame gameId newGame = do
+initGameWithHost :: PlayerName -> ActiveGame
+initGameWithHost host = ActiveGame
+  { game = createGame host
+  , playerConns = Map.empty
+  }
+
+-- | Loads the game with the given ID. If no game is found, create a game with the given player
+-- as the host.
+loadOrCreateGame :: Text -> PlayerName -> Handler (MVar ActiveGame)
+loadOrCreateGame gameId playerName = do
   platformVar <- asks envPlatform
 
   liftIO $ modifyMVar platformVar $ \platform ->
     case Map.lookup gameId platform of
       Nothing -> do
-        activeGameVar <- newMVar $ ActiveGame newGame Map.empty
+        activeGameVar <- newMVar $ initGameWithHost playerName
         return (Map.insert gameId activeGameVar platform, activeGameVar)
       Just activeGameVar -> return (platform, activeGameVar)
