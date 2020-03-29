@@ -34,7 +34,28 @@ server platformVar =
   :<|> serveStatic
   :<|> serveHTML
 
-{- Route definitions -}
+{- Serve websocket game -}
+
+-- | The state of the platform, mapping game identifiers to Game.
+type Platform = Map Text (MVar ActiveGame)
+
+serveGame :: MVar Platform -> Text -> PlayerName -> Connection -> Handler ()
+serveGame platformVar gameId playerName playerConn = liftIO $ do
+  activeGameVar <- loadOrCreateGame platformVar gameId playerName
+  servePlayer activeGameVar playerName playerConn
+
+-- | Loads the game with the given ID. If no game is found, create a game with the given player
+-- as the host.
+loadOrCreateGame :: MVar Platform -> Text -> PlayerName -> IO (MVar ActiveGame)
+loadOrCreateGame platformVar gameId playerName =
+  modifyMVar platformVar $ \platform ->
+    case Map.lookup gameId platform of
+      Nothing -> do
+        activeGameVar <- newMVar $ initGameWithHost playerName
+        return (Map.insert gameId activeGameVar platform, activeGameVar)
+      Just activeGameVar -> return (platform, activeGameVar)
+
+{- Serving static files -}
 
 -- | The location of static files
 distDir :: FilePath
@@ -47,24 +68,3 @@ serveStatic = serveDirectoryFileServer distDir
 -- | Serve index.html
 serveHTML :: Server Raw
 serveHTML = serveDirectoryWebApp distDir
-
-serveGame :: MVar Platform -> Text -> PlayerName -> Connection -> Handler ()
-serveGame platformVar gameId playerName playerConn = liftIO $ do
-  activeGameVar <- loadOrCreateGame platformVar gameId playerName
-  servePlayer activeGameVar playerName playerConn
-
-{- Servant monad -}
-
--- | The state of the platform, mapping game identifiers to Game.
-type Platform = Map Text (MVar ActiveGame)
-
--- | Loads the game with the given ID. If no game is found, create a game with the given player
--- as the host.
-loadOrCreateGame :: MVar Platform -> Text -> PlayerName -> IO (MVar ActiveGame)
-loadOrCreateGame platformVar gameId playerName =
-  modifyMVar platformVar $ \platform ->
-    case Map.lookup gameId platform of
-      Nothing -> do
-        activeGameVar <- newMVar $ initGameWithHost playerName
-        return (Map.insert gameId activeGameVar platform, activeGameVar)
-      Just activeGameVar -> return (platform, activeGameVar)
