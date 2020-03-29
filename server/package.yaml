@@ -19,6 +19,9 @@ dependencies:
   - aeson
   - base
   - containers
+  - file-embed
+  - MonadRandom
+  - random-shuffle
   - text
 
 library:
