@@ -14,6 +14,7 @@ import Data.Aeson (eitherDecode', encode)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
+import qualified Data.Set as Set
 import Data.Text (Text)
 import Network.Wai.Handler.Warp (run)
 import Network.WebSockets
@@ -35,6 +36,8 @@ import Scattergories
     , PlayerName
     , ServerError(..)
     , createGame
+    , getHost
+    , getPlayers
     , getStatus
     , initPlayer
     , mkError
@@ -85,11 +88,12 @@ serveGame gameId playerName playerConn = do
   liftIO $ modifyMVar_ platformGameVar $ \platformGame ->
     case getStatus (game platformGame) of
       GameStart -> do
-        let platformGame' = platformGame
-              { game = initPlayer playerName (game platformGame)
+        let updatedGame = initPlayer playerName (game platformGame)
+            platformGame' = platformGame
+              { game = updatedGame
               , playerConns = Map.insert playerName playerConn (playerConns platformGame)
               }
-        sendToAll platformGame' RefreshPlayerListMessage
+        sendToAll platformGame' $ RefreshPlayerListMessage (getHost updatedGame) (Set.toList $ getPlayers updatedGame)
         return platformGame'
       _ -> return platformGame
 
@@ -120,9 +124,9 @@ serveGame gameId playerName playerConn = do
     receiveJSONData connection = either fail return . eitherDecode' =<< receiveData connection
     sendJSONData connection = sendTextData connection . encode
 
-    sendToAll PlatformGame{game, playerConns} message =
+    sendToAll PlatformGame{playerConns} message =
       forM_ (Map.elems playerConns) $ \conn ->
-        sendJSONData conn $ mkMessage game message
+        sendJSONData conn $ mkMessage message
 
 {- Servant monad -}
 

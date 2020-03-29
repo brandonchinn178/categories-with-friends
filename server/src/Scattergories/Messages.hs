@@ -8,22 +8,22 @@ module Scattergories.Messages
 
 import Data.Aeson (Value(..), object, (.=))
 
-import Scattergories.Game (Game, getHost, getPlayers)
+import Scattergories.Game (PlayerName)
 
 data Message
-  = RefreshPlayerListMessage
-    -- ^ send the current player list to everyone
+  = RefreshPlayerListMessage PlayerName [PlayerName]
+    -- ^ send the current host and player list to everyone
 
 instance Show Message where
-  show RefreshPlayerListMessage = "refresh_player_list"
+  show RefreshPlayerListMessage{} = "refresh_player_list"
 
-mkMessage :: Game -> Message -> Value
-mkMessage game message =
+mkMessage :: Message -> Value
+mkMessage message =
   let eventEntry = "event" .= show message
   in object $ eventEntry : mkMessagePayload message
   where
     mkMessagePayload = \case
-      RefreshPlayerListMessage ->
-        [ "players" .= getPlayers game
-        , "host" .= getHost game
+      RefreshPlayerListMessage host players ->
+        [ "players" .= players
+        , "host" .= host
         ]
