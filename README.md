@@ -17,3 +17,8 @@ A web project running a multiplayer Scattergories server.
 1. `stack build stylish-haskell hlint`
 1. `scripts/run-hlint.sh`
 1. `scripts/run-stylish-haskell.sh`
+
+### Add pre-commit git hooks
+
+1. Install [`pre-commit`](https://pre-commit.com/)
+1. `pre-commit install`
