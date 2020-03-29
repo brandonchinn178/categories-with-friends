@@ -7,7 +7,7 @@
 
 import Control.Concurrent.MVar (MVar, modifyMVar, modifyMVar_, newMVar)
 import Control.Exception (fromException, throwIO, try)
-import Control.Monad (forM_, unless)
+import Control.Monad (forM_, unless, when)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT, asks, runReaderT)
 import Data.Aeson (FromJSON, ToJSON, eitherDecode', encode)
@@ -92,7 +92,7 @@ serveGame gameId playerName playerConn = do
   platformGameVar <- loadGame gameId (createGame playerName)
   liftIO $ modifyMVar_ platformGameVar $ setupPlayer playerName playerConn
 
-  liftIO $ withPingThread playerConn pingDelay postPing $ runLoop $ do
+  liftIO $ withPingThread playerConn pingDelay postPing $ runLoop platformGameVar $ do
     event <- receiveJSONData playerConn
     modifyMVar_ platformGameVar $ \platformGame -> do
       let checkHost = unless (getHost (game platformGame) == playerName) $ throwIO NotHostError
@@ -107,25 +107,34 @@ serveGame gameId playerName playerConn = do
 
     -- continually run the given action, until a CloseRequest exception is thrown
     -- any other errors are sent to the client
-    runLoop m = try m >>= \case
+    runLoop platformGameVar m = try m >>= \case
       Left e ->
         case fromException e of
-          Just CloseRequest{} -> return ()
+          Just CloseRequest{} ->
+            modifyMVar_ platformGameVar $ \platformGame ->
+              pure platformGame
+                { playerConns = Map.delete playerName (playerConns platformGame)
+                }
           _ -> do
             let serverErr = fromMaybe (UnexpectedServerError e) (fromException e)
             sendJSONData playerConn $ mkError serverErr
-            runLoop m
-      Right _ -> runLoop m
+            runLoop platformGameVar m
+      Right _ -> runLoop platformGameVar m
 
 {- Game mechanics -}
 
 -- | If the game hasn't started yet, add the given player to the game and notify everyone of the
 -- new arrival.
 setupPlayer :: PlayerName -> Connection -> PlatformGame -> IO PlatformGame
-setupPlayer playerName playerConn platformGame =
+setupPlayer playerName playerConn platformGame = do
+  when (playerName `Map.member` playerConns platformGame) $
+    throwIO $ CannotJoinGameError "you're already in the game"
+
   case getStatus $ game platformGame of
     GameStart -> notifyUpdatedPlayerList >> pure updatedPlatformGame
-    _ -> pure platformGame
+    _ -> if playerName `Set.member` getPlayers (game platformGame)
+      then pure platformGame
+      else throwIO $ CannotJoinGameError "game already started without you"
   where
     updatedGame = initPlayer playerName (game platformGame)
     updatedPlatformGame = platformGame
