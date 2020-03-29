@@ -89,64 +89,64 @@ serveHTML = serveDirectoryWebApp distDir
 
 serveGame :: Text -> PlayerName -> Connection -> Handler ()
 serveGame gameId playerName playerConn = do
-  platformGameVar <- loadGame gameId (createGame playerName)
-  liftIO $ modifyMVar_ platformGameVar $ setupPlayer playerName playerConn
+  activeGameVar <- loadGame gameId (createGame playerName)
+  liftIO $ modifyMVar_ activeGameVar $ setupPlayer playerName playerConn
 
-  liftIO $ withPingThread playerConn pingDelay postPing $ runLoop platformGameVar $ do
+  liftIO $ withPingThread playerConn pingDelay postPing $ runLoop activeGameVar $ do
     event <- receiveJSONData playerConn
-    modifyMVar_ platformGameVar $ \platformGame -> do
-      let checkHost = unless (getHost (game platformGame) == playerName) $ throwIO NotHostError
+    modifyMVar_ activeGameVar $ \activeGame -> do
+      let checkHost = unless (getHost (game activeGame) == playerName) $ throwIO NotHostError
       case event of
-        StartRoundEvent -> checkHost >> startGameRound platformGame
+        StartRoundEvent -> checkHost >> startGameRound activeGame
         SubmitAnswersEvent{} -> undefined
         EndValidationEvent{} -> undefined
-        EndGameEvent -> checkHost >> endGame platformGame
+        EndGameEvent -> checkHost >> endGame activeGame
   where
     pingDelay = 30 -- seconds
     postPing = return ()
 
     -- continually run the given action, until a CloseRequest exception is thrown
     -- any other errors are sent to the client
-    runLoop platformGameVar m = try m >>= \case
+    runLoop activeGameVar m = try m >>= \case
       Left e ->
         case fromException e of
           Just CloseRequest{} ->
-            modifyMVar_ platformGameVar $ \platformGame ->
-              pure platformGame
-                { playerConns = Map.delete playerName (playerConns platformGame)
+            modifyMVar_ activeGameVar $ \activeGame ->
+              pure activeGame
+                { playerConns = Map.delete playerName (playerConns activeGame)
                 }
           _ -> do
             let serverErr = fromMaybe (UnexpectedServerError e) (fromException e)
             sendJSONData playerConn $ mkError serverErr
-            runLoop platformGameVar m
-      Right _ -> runLoop platformGameVar m
+            runLoop activeGameVar m
+      Right _ -> runLoop activeGameVar m
 
 {- Game mechanics -}
 
 -- | If the game hasn't started yet, add the given player to the game and notify everyone of the
 -- new arrival.
-setupPlayer :: PlayerName -> Connection -> PlatformGame -> IO PlatformGame
-setupPlayer playerName playerConn platformGame = do
-  when (playerName `Map.member` playerConns platformGame) $
+setupPlayer :: PlayerName -> Connection -> ActiveGame -> IO ActiveGame
+setupPlayer playerName playerConn activeGame = do
+  when (playerName `Map.member` playerConns activeGame) $
     throwIO $ CannotJoinGameError "you're already in the game"
 
-  case getStatus $ game platformGame of
-    GameStart -> notifyUpdatedPlayerList >> pure updatedPlatformGame
-    _ -> if playerName `Set.member` getPlayers (game platformGame)
-      then pure platformGame
+  case getStatus $ game activeGame of
+    GameStart -> notifyUpdatedPlayerList >> pure updatedActiveGame
+    _ -> if playerName `Set.member` getPlayers (game activeGame)
+      then pure activeGame
       else throwIO $ CannotJoinGameError "game already started without you"
   where
-    updatedGame = initPlayer playerName (game platformGame)
-    updatedPlatformGame = platformGame
+    updatedGame = initPlayer playerName (game activeGame)
+    updatedActiveGame = activeGame
       { game = updatedGame
-      , playerConns = Map.insert playerName playerConn (playerConns platformGame)
+      , playerConns = Map.insert playerName playerConn (playerConns activeGame)
       }
-    notifyUpdatedPlayerList = sendToAll updatedPlatformGame $
+    notifyUpdatedPlayerList = sendToAll updatedActiveGame $
       RefreshPlayerListMessage (getHost updatedGame) (Set.toList $ getPlayers updatedGame)
 
 -- | Start a new round in the game.
-startGameRound :: PlatformGame -> IO PlatformGame
-startGameRound platformGame@PlatformGame{game} = do
+startGameRound :: ActiveGame -> IO ActiveGame
+startGameRound activeGame@ActiveGame{game} = do
   nextRoundNum <- case getStatus game of
     GameStart -> return 0
     GameRound RoundInfo{roundNum} RoundEnd -> return $ roundNum + 1
@@ -154,17 +154,17 @@ startGameRound platformGame@PlatformGame{game} = do
     GameDone -> throwIO $ UnexpectedStartRoundError "game is done"
 
   newRound <- generateRound nextRoundNum
-  let platformGame' = platformGame { game = startRound newRound game }
+  let activeGame' = activeGame { game = startRound newRound game }
 
-  sendToAll platformGame' $ StartRoundMessage newRound
-  return platformGame'
+  sendToAll activeGame' $ StartRoundMessage newRound
+  return activeGame'
 
 -- | End the game.
-endGame :: PlatformGame -> IO PlatformGame
-endGame platformGame@PlatformGame{game} = do
-  let platformGame' = platformGame { game = markGameDone game }
-  sendToAll platformGame' EndGameMessage
-  return platformGame'
+endGame :: ActiveGame -> IO ActiveGame
+endGame activeGame@ActiveGame{game} = do
+  let activeGame' = activeGame { game = markGameDone game }
+  sendToAll activeGame' EndGameMessage
+  return activeGame'
 
 {- WebSocket helpers -}
 
@@ -174,8 +174,8 @@ receiveJSONData conn = either fail return . eitherDecode' =<< receiveData conn
 sendJSONData :: ToJSON a => Connection -> a -> IO ()
 sendJSONData conn = sendTextData conn . encode
 
-sendToAll :: PlatformGame -> Message -> IO ()
-sendToAll PlatformGame{playerConns} message =
+sendToAll :: ActiveGame -> Message -> IO ()
+sendToAll ActiveGame{playerConns} message =
   forM_ (Map.elems playerConns) $ \conn ->
     sendJSONData conn $ mkMessage message
 
@@ -190,21 +190,21 @@ type Handler = ReaderT HandlerEnv Servant.Handler
 type Server api = Servant.ServerT api Handler
 
 -- | The state of the platform, mapping game identifiers to Game.
-type Platform = Map Text (MVar PlatformGame)
+type Platform = Map Text (MVar ActiveGame)
 
-data PlatformGame = PlatformGame
+data ActiveGame = ActiveGame
   { game        :: Game
   , playerConns :: Map PlayerName Connection
   }
 
 -- | Loads the game with the given ID. If no game is found, create the given game.
-loadGame :: Text -> Game -> Handler (MVar PlatformGame)
+loadGame :: Text -> Game -> Handler (MVar ActiveGame)
 loadGame gameId newGame = do
   platformVar <- asks envPlatform
 
   liftIO $ modifyMVar platformVar $ \platform ->
     case Map.lookup gameId platform of
       Nothing -> do
-        platformGameVar <- newMVar $ PlatformGame newGame Map.empty
-        return (Map.insert gameId platformGameVar platform, platformGameVar)
-      Just platformGameVar -> return (platform, platformGameVar)
+        activeGameVar <- newMVar $ ActiveGame newGame Map.empty
+        return (Map.insert gameId activeGameVar platform, activeGameVar)
+      Just activeGameVar -> return (platform, activeGameVar)
