@@ -9,7 +9,6 @@ import Control.Concurrent.MVar (MVar, modifyMVar, modifyMVar_, newMVar)
 import Control.Exception (fromException, throwIO, try)
 import Control.Monad (forM_, unless, when)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Reader (ReaderT, asks, runReaderT)
 import Data.Aeson (FromJSON, ToJSON, eitherDecode', encode)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
@@ -24,8 +23,7 @@ import Network.WebSockets
     , sendTextData
     , withPingThread
     )
-import Servant hiding (Handler, Server)
-import qualified Servant
+import Servant
 import Servant.API.WebSocket (WebSocket)
 
 import Scattergories
@@ -58,18 +56,14 @@ main :: IO ()
 main = do
   platformVar <- newMVar Map.empty
 
-  run 8000 $ app HandlerEnv
-    { envPlatform = platformVar
-    }
+  run 8000 $ app platformVar
 
-app :: HandlerEnv -> Application
-app env = serve apiProxy $ hoistServer apiProxy (`runReaderT` env) server
-  where
-    apiProxy = Proxy @API
+app :: MVar Platform -> Application
+app platformVar = serve (Proxy @API) $ server platformVar
 
-server :: Server API
-server =
-       serveGame
+server :: MVar Platform -> Server API
+server platformVar =
+       serveGame platformVar
   :<|> serveStatic
   :<|> serveHTML
 
@@ -87,12 +81,12 @@ serveStatic = serveDirectoryFileServer distDir
 serveHTML :: Server Raw
 serveHTML = serveDirectoryWebApp distDir
 
-serveGame :: Text -> PlayerName -> Connection -> Handler ()
-serveGame gameId playerName playerConn = do
-  activeGameVar <- loadOrCreateGame gameId playerName
-  liftIO $ modifyMVar_ activeGameVar $ setupPlayer playerName playerConn
+serveGame :: MVar Platform -> Text -> PlayerName -> Connection -> Handler ()
+serveGame platformVar gameId playerName playerConn = liftIO $ do
+  activeGameVar <- loadOrCreateGame platformVar gameId playerName
+  modifyMVar_ activeGameVar $ setupPlayer playerName playerConn
 
-  liftIO $ withPingThread playerConn pingDelay postPing $ runLoop activeGameVar $ do
+  withPingThread playerConn pingDelay postPing $ runLoop activeGameVar $ do
     event <- receiveJSONData playerConn
     modifyMVar_ activeGameVar $ \activeGame -> do
       let checkHost = unless (getHost (game activeGame) == playerName) $ throwIO NotHostError
@@ -181,14 +175,6 @@ sendToAll ActiveGame{playerConns} message =
 
 {- Servant monad -}
 
-{-# ANN HandlerEnv ("Hlint: ignore Use newtype instead of data" :: String) #-}
-data HandlerEnv = HandlerEnv
-  { envPlatform :: MVar Platform
-  }
-
-type Handler = ReaderT HandlerEnv Servant.Handler
-type Server api = Servant.ServerT api Handler
-
 -- | The state of the platform, mapping game identifiers to Game.
 type Platform = Map Text (MVar ActiveGame)
 
@@ -205,11 +191,9 @@ initGameWithHost host = ActiveGame
 
 -- | Loads the game with the given ID. If no game is found, create a game with the given player
 -- as the host.
-loadOrCreateGame :: Text -> PlayerName -> Handler (MVar ActiveGame)
-loadOrCreateGame gameId playerName = do
-  platformVar <- asks envPlatform
-
-  liftIO $ modifyMVar platformVar $ \platform ->
+loadOrCreateGame :: MVar Platform -> Text -> PlayerName -> IO (MVar ActiveGame)
+loadOrCreateGame platformVar gameId playerName =
+  modifyMVar platformVar $ \platform ->
     case Map.lookup gameId platform of
       Nothing -> do
         activeGameVar <- newMVar $ initGameWithHost playerName
