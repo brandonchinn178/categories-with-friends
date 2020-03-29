@@ -3,6 +3,10 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 
+#ifdef __SERVE_STATIC__
+{-# LANGUAGE TemplateHaskell #-}
+#endif
+
 import Control.Concurrent.MVar (MVar, modifyMVar, newMVar)
 import Control.Monad.IO.Class (liftIO)
 import Data.Map.Strict (Map)
@@ -12,6 +16,12 @@ import Network.Wai.Handler.Warp (run)
 import Network.WebSockets (Connection)
 import Servant
 import Servant.API.WebSocket (WebSocket)
+
+#ifdef __SERVE_STATIC__
+import Data.FileEmbed (embedStringFile)
+import WaiAppStatic.Storage.Embedded (embeddedSettings)
+import WaiAppStatic.Types (StaticSettings(..))
+#endif
 
 import Scattergories (ActiveGame, PlayerName, initGameWithHost, servePlayer)
 
@@ -57,29 +67,23 @@ loadOrCreateGame platformVar gameId playerName =
 {- Serving static files -}
 
 #ifdef __SERVE_STATIC__
-type StaticAPI =
-       "static" :> Raw
-  :<|> Raw
+type StaticAPI = Raw
 
 serverStaticAPI :: Server StaticAPI
-serverStaticAPI =
-       serveStatic
-  :<|> serveHTML
-
--- | The location of static files
-distDir :: FilePath
-distDir = "./public/"
-
--- | Serve static files
-serveStatic :: Server Raw
-serveStatic = serveDirectoryFileServer distDir
-
--- | Serve index.html
-serveHTML :: Server Raw
-serveHTML = serveDirectoryWebApp distDir
+serverStaticAPI = serveDirectoryWith staticSettings
+  where
+    staticSettings = (embeddedSettings staticFiles)
+      { ssListing = Nothing -- disallow listing directory of static files
+      }
+    staticFiles =
+      [ ("index.html", $(embedStringFile "../public/index.html"))
+      , ("static/index.js", $(embedStringFile "../public/index.js"))
+      ]
 #else
 type StaticAPI = EmptyAPI
 
 serverStaticAPI :: Server StaticAPI
 serverStaticAPI = emptyServer
 #endif
+
+

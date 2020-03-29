@@ -45,3 +45,5 @@ executable:
     - condition: flag(serve_static)
       cpp-options:
         - -D__SERVE_STATIC__
+      dependencies:
+        - wai-app-static
