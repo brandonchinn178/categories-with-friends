@@ -6,13 +6,14 @@
 {-# LANGUAGE TypeOperators #-}
 
 import Control.Concurrent.MVar (MVar, modifyMVar, modifyMVar_, newMVar)
-import Control.Exception (displayException, fromException, try)
+import Control.Exception (fromException, try)
 import Control.Monad (forM_)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT, asks, runReaderT)
-import Data.Aeson (eitherDecode', encode, object, (.=))
+import Data.Aeson (eitherDecode', encode)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Network.Wai.Handler.Warp (run)
 import Network.WebSockets (Connection, ConnectionException(..), receiveData, sendTextData, withPingThread)
@@ -26,9 +27,11 @@ import Scattergories
     , GameStatus(..)
     , Message(..)
     , PlayerName
+    , ServerError(..)
     , createGame
     , getStatus
     , initPlayer
+    , mkError
     , mkMessage
     )
 
@@ -99,9 +102,13 @@ serveGame gameId playerName playerConn = do
     -- continually run the given action, until a CloseRequest exception is thrown
     -- any other errors are sent to the client
     runLoop m = try m >>= \case
-      Left e
-        | Just CloseRequest{} <- fromException e -> return ()
-        | otherwise -> sendError e >> runLoop m
+      Left e ->
+        case fromException e of
+          Just CloseRequest{} -> return ()
+          _ -> do
+            let serverErr = fromMaybe (UnexpectedServerError e) (fromException e)
+            sendJSONData playerConn $ mkError serverErr
+            runLoop m
       Right _ -> runLoop m
 
     receiveJSONData connection = either fail return . eitherDecode' =<< receiveData connection
@@ -110,11 +117,6 @@ serveGame gameId playerName playerConn = do
     sendToAll PlatformGame{game, playerConns} message =
       forM_ (Map.elems playerConns) $ \conn ->
         sendJSONData conn $ mkMessage game message
-
-    sendError e = sendJSONData playerConn $ object
-      [ "error" .= ("server_error" :: Text)
-      , "message" .= displayException e
-      ]
 
 {- Servant monad -}
 
