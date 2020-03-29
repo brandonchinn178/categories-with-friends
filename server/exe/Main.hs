@@ -80,7 +80,7 @@ serveGame gameId playerName playerConn = do
               { game = initPlayer playerName (game platformGame)
               , playerConns = Map.insert playerName playerConn (playerConns platformGame)
               }
-        sendToAll platformGame' RefreshPlayerList
+        sendToAll platformGame' RefreshPlayerListMessage
         return platformGame'
       _ -> return platformGame
 
@@ -88,10 +88,10 @@ serveGame gameId playerName playerConn = do
     event <- receiveJSONData playerConn
     liftIO $ modifyMVar platformGameVar $ \PlatformGame{game, playerConns} ->
       case event of
-        StartRound{} -> undefined
-        SubmitAnswers{} -> undefined
-        EndValidation{} -> undefined
-        EndGame{} -> undefined
+        StartRoundEvent{} -> undefined
+        SubmitAnswersEvent{} -> undefined
+        EndValidationEvent{} -> undefined
+        EndGameEvent{} -> undefined
   where
     pingDelay = 30 -- seconds
     postPing = return ()
