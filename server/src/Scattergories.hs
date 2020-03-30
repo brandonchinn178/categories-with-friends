@@ -61,7 +61,7 @@ servePlayer activeGameVar playerName playerConn = do
       let checkHost = unless (getHost (game activeGame) == playerName) $ throwIO NotHostError
       case event of
         StartRoundEvent -> fmap ActiveGame $ checkHost >> startGameRound activeGame
-        SubmitAnswersEvent{} -> undefined
+        SubmitAnswersEvent playerAnswers -> ActiveGame <$> registerAnswers playerName playerAnswers activeGame
         EndValidationEvent{} -> undefined
         EndGameEvent -> fmap ActiveGame $ checkHost >> endGame activeGame
   where
@@ -118,16 +118,36 @@ setupPlayer playerName playerConn activeGame@ActiveGameState{..} = do
 startGameRound :: ActiveGameState status -> IO (ActiveGameState 'GameInProgress)
 startGameRound activeGame@ActiveGameState{game} = do
   (game', newRound) <- case getStatus game of
-    SGameDone -> throwIO $ UnexpectedEventError "start_round" "game is done"
+    SGameDone -> throwUnexpectedEvent "game is done"
     SGameLoading -> startRound game
     SGameInProgress -> do
-      when (isRoundDone $ getCurrRound game) $
-        throwIO $ UnexpectedEventError "start_round" "round isn't over"
+      when (isRoundDone $ getCurrRound game) $ throwUnexpectedEvent "round isn't over"
       startRound game
 
   let activeGame' = activeGame { game = game' }
   sendToAll activeGame' $ StartRoundMessage newRound
   return activeGame'
+  where
+    throwUnexpectedEvent = throwIO . UnexpectedEventError "start_round"
+
+-- | Register the given player's answers. If this person was the last person to answer, send
+-- everyone the start_validation message.
+registerAnswers :: PlayerName -> Map Category Answer -> ActiveGameState status -> IO (ActiveGameState 'GameInProgress)
+registerAnswers playerName playerAnswers activeGame@ActiveGameState{game} =
+  case getStatus game of
+    SGameLoading -> throwUnexpectedEvent "game hasn't started"
+    SGameDone -> throwUnexpectedEvent "game is over"
+    SGameInProgress -> do
+      let updatedGame = updateCurrRound game $ addPlayerAnswers playerName playerAnswers
+          updatedActiveGame = activeGame { game = updatedGame }
+
+      when (haveAllPlayersAnswered game) $
+        sendToAll updatedActiveGame $
+          StartValidationMessage $ fmap fst <$> answers (getCurrRound updatedGame)
+
+      pure updatedActiveGame
+  where
+    throwUnexpectedEvent = throwIO . UnexpectedEventError "submit_answers"
 
 -- | End the game.
 endGame :: ActiveGameState status -> IO (ActiveGameState 'GameDone)

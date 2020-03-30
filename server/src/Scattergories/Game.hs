@@ -5,6 +5,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TupleSections #-}
 
 module Scattergories.Game
   ( Game
@@ -23,7 +24,10 @@ module Scattergories.Game
   , Vote(..)
   , isRoundDone
   , getCurrRound
+  , updateCurrRound
   , startRound
+  , addPlayerAnswers
+  , haveAllPlayersAnswered
   ) where
 
 import Control.Monad.Random (getRandomR)
@@ -110,6 +114,13 @@ isRoundDone = all (all isAnswerVoted) . answers
 getCurrRound :: Game 'GameInProgress -> GameRound
 getCurrRound = last . rounds
 
+updateCurrRound :: Game 'GameInProgress -> (GameRound -> GameRound) -> Game 'GameInProgress
+updateCurrRound game f = game { rounds = modifyLast (rounds game) }
+  where
+    modifyLast [] = error "modifyLast: empty list"
+    modifyLast [x] = [f x]
+    modifyLast (x:xs) = x : modifyLast xs
+
 class CanBeStarted (status :: GameStatus) where
   addRound :: GameRound -> Game status -> Game 'GameInProgress
   getNextRoundNum :: Game status -> Int
@@ -137,6 +148,19 @@ startRound game = do
   where
     numCategories = 12
     roundDuration = 3 * 60 -- 3 minutes
+
+addPlayerAnswers :: PlayerName -> Map Category Answer -> GameRound -> GameRound
+addPlayerAnswers playerName playerAnswers gameRound = gameRound
+  { answers = Map.insert playerName (initVotes playerAnswers) (answers gameRound)
+  }
+  where
+    initVotes = fmap (, NO_VOTE)
+
+-- | True if all players have submitted their answers.
+haveAllPlayersAnswered :: Game 'GameInProgress -> Bool
+haveAllPlayersAnswered game@Game{players} = all (`Map.member` answers) players
+  where
+    GameRound{answers} = getCurrRound game
 
 {- Data -}
 

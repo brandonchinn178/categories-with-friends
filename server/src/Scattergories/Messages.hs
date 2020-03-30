@@ -7,21 +7,25 @@ module Scattergories.Messages
   ) where
 
 import Data.Aeson (ToJSON(..), object, (.=))
+import Data.Map.Strict (Map)
 import Data.Time (defaultTimeLocale, formatTime, iso8601DateFormat)
 
-import Scattergories.Game (GameRound(..), PlayerName)
+import Scattergories.Game (Answer, Category, GameRound(..), PlayerName)
 
 data Message
   = RefreshPlayerListMessage PlayerName [PlayerName]
     -- ^ send the current host and player list to everyone
   | StartRoundMessage GameRound
     -- ^ send information to start a round
+  | StartValidationMessage (Map PlayerName (Map Category Answer))
+    -- ^ send everyone's answers so the host can validate
   | EndGameMessage
     -- ^ tell everyone to end their games
 
 instance Show Message where
   show RefreshPlayerListMessage{} = "refresh_player_list"
   show StartRoundMessage{} = "start_round"
+  show StartValidationMessage{} = "start_validation"
   show EndGameMessage = "end_game"
 
 instance ToJSON Message where
@@ -39,6 +43,9 @@ instance ToJSON Message where
           , "categories" .= categories
           , "letter" .= letter
           , "end_time" .= formatISO8601 endTime
+          ]
+        StartValidationMessage answers ->
+          [ "answers" .= answers
           ]
         EndGameMessage -> []
 
