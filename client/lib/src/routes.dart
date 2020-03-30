@@ -14,12 +14,14 @@ class RoutePaths {
   static final root = RoutePath(path: '/');
   static final gameHome = RoutePath(path: ':$gameIdParam');
   static final game = RoutePath(path: '${gameHome.path}/:$playerParam');
+
+  static String getGameId(Map<String, String> parameters) =>
+      parameters[gameIdParam];
+  static String getPlayer(Map<String, String> parameters) =>
+      parameters[playerParam];
 }
 
 class Routes {
-  String getGameId(Map<String, String> parameters) => parameters[gameIdParam];
-  String getPlayer(Map<String, String> parameters) => parameters[playerParam];
-
   static final root = RouteDefinition(
     routePath: RoutePaths.root,
     component: RootComponentNgFactory,
@@ -32,7 +34,7 @@ class Routes {
 
   static final game = RouteDefinition(
     routePath: RoutePaths.game,
-    component: GameHomeComponentNgFactory,
+    component: GameComponentNgFactory,
   );
 
   static final all = <RouteDefinition>[

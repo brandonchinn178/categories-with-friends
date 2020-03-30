@@ -1,1 +1,7 @@
-<h1>Game home</h1>
+<div class="card">
+  <material-input label="Enter username" [(ngModel)]="player"
+                  [error]="errorMsg"
+                  floatingLabel>
+  </material-input>
+  <material-button (trigger)="onEnter">Enter</material-button>
+</div>
