@@ -7,3 +7,7 @@
 
 # Dart
 /dist/
+/client/.dart_tool
+
+*.swp
+.*.swp
