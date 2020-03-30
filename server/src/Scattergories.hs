@@ -43,6 +43,14 @@ data ActiveGameState status = ActiveGameState
 data ActiveGame where
   ActiveGame :: forall status. ActiveGameState status -> ActiveGame
 
+-- | Update the ActiveGameState inside an ActiveGame.
+--
+-- Unfortunately, it would be nice to have the function return
+-- IO (forall newStatus. ActiveGameState newStatus), but GHC doesn't support impredicative types
+-- yet, so we have to force the function to wrap ActiveGame explicitly.
+updateActiveGame :: MVar ActiveGame -> (forall oldStatus. ActiveGameState oldStatus -> IO ActiveGame) -> IO ()
+updateActiveGame activeGameVar f = modifyMVar_ activeGameVar $ \(ActiveGame activeGame) -> f activeGame
+
 initGameWithHost :: PlayerName -> ActiveGame
 initGameWithHost host = ActiveGame $
   ActiveGameState
@@ -52,18 +60,18 @@ initGameWithHost host = ActiveGame $
 
 servePlayer :: MVar ActiveGame -> PlayerName -> Connection -> IO ()
 servePlayer activeGameVar playerName playerConn = do
-  modifyMVar_ activeGameVar $ \(ActiveGame activeGame) ->
-    ActiveGame <$> setupPlayer playerName playerConn activeGame
+  updateGame $ resolve . setupPlayer playerName playerConn
 
-  withPingThread playerConn pingDelay postPing $ runLoop $ do
-    event <- receiveJSONData playerConn
-    modifyMVar_ activeGameVar $ \(ActiveGame activeGame) -> do
-      let checkHost = unless (getHost (game activeGame) == playerName) $ throwIO NotHostError
-      case event of
-        StartRoundEvent -> fmap ActiveGame $ checkHost >> startGameRound activeGame
-        SubmitAnswersEvent playerAnswers -> ActiveGame <$> registerAnswers playerName playerAnswers activeGame
-        EndValidationEvent{} -> undefined
-        EndGameEvent -> fmap ActiveGame $ checkHost >> endGame activeGame
+  withPingThread playerConn pingDelay postPing $ runLoop $
+    receiveJSONData playerConn >>= \case
+      StartRoundEvent ->
+        updateGameOnlyHost $ resolve . startGameRound
+      SubmitAnswersEvent playerAnswers ->
+        updateGame $ resolve . registerAnswers playerName playerAnswers
+      EndValidationEvent{} ->
+        undefined
+      EndGameEvent ->
+        updateGameOnlyHost $ resolve . endGame
   where
     pingDelay = 30 -- seconds
     postPing = return ()
@@ -74,8 +82,8 @@ servePlayer activeGameVar playerName playerConn = do
       Left e ->
         case fromException e of
           Just CloseRequest{} ->
-            modifyMVar_ activeGameVar $ \(ActiveGame activeGame) ->
-              pure $ ActiveGame activeGame
+            updateGame $ \activeGame -> pure $ ActiveGame
+              activeGame
                 { playerConns = Map.delete playerName (playerConns activeGame)
                 }
           _ -> do
@@ -83,6 +91,17 @@ servePlayer activeGameVar playerName playerConn = do
             sendJSONData playerConn serverErr
             runLoop m
       Right _ -> runLoop m
+
+    updateGameOnlyHost :: (forall oldStatus. ActiveGameState oldStatus -> IO ActiveGame) -> IO ()
+    updateGameOnlyHost f = updateGame $ \activeGame -> do
+      unless (getHost (game activeGame) == playerName) $ throwIO NotHostError
+      f activeGame
+
+    updateGame :: (forall oldStatus. ActiveGameState oldStatus -> IO ActiveGame) -> IO ()
+    updateGame = updateActiveGame activeGameVar
+
+    resolve :: IO (ActiveGameState newStatus) -> IO ActiveGame
+    resolve = fmap ActiveGame
 
 {- Game mechanics -}
 
