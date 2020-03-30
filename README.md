@@ -4,17 +4,25 @@ A web project running a multiplayer Scattergories server.
 
 ## Quickstart
 
-### Frontend
-1. Install [`webdev`](https://dart.dev/tools/webdev)
-1. `pub get` within client/
-1. `webdev serve`.
-1. Go to `http://localhost:8080`
+1. Install language tools
+    1. Install Dart
+        ```bash
+        brew tap dart-lang/dart
+        brew install dart
+        ```
 
-### Backend
-1. Install [`stack`](https://docs.haskellstack.org/en/stable/install_and_upgrade/)
-1. `stack build`
-1. `stack exec scattergories`
-1. Go to `http://localhost:8000`
+    1. Install [`webdev`](https://dart.dev/tools/webdev)
+    1. Install [`stack`](https://docs.haskellstack.org/en/stable/install_and_upgrade/)
+
+1. Build and run the backend in one tab
+    1. `stack build`
+    1. `stack exec scattergories`
+
+1. Build and run the frontend in another tab
+    1. `pub get` within client/
+    1. `webdev serve`.
+
+1. Go to `http://localhost:8080`
 
 ## Development
 
