@@ -10,8 +10,8 @@
 module Scattergories.Game
   ( Game
   , GameRound(GameRound, roundNum, categories, letter, endTime)
-  , Vote(..)
   , createGame
+  , getScores
     -- * Players
   , PlayerName
   , getHost
@@ -27,6 +27,7 @@ module Scattergories.Game
   , getCurrRound
   , updateCurrRound
   , startRound
+  , finalizeRound
     -- * Categories
   , Category
     -- * Answering phase
@@ -36,10 +37,12 @@ module Scattergories.Game
   , haveAllPlayersAnswered
   ) where
 
+import Control.Monad ((<=<))
 import Control.Monad.Random (getRandomR)
 import Data.FileEmbed (embedStringFile)
-import Data.Map (Map)
-import qualified Data.Map as Map
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
+import Data.Maybe (fromMaybe, isJust)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
@@ -59,14 +62,11 @@ data GameRound = GameRound
   { roundNum   :: Int
   , categories :: [Category]
   , letter     :: Char
-  , answers    :: Map PlayerName (Map Category (Answer, Vote))
-    -- ^ Invariant: Either all votes are NO_VOTE, or none are
+  , answers    :: Map PlayerName (Map Category (Answer, Maybe Bool))
+    -- ^ Invariant: Either all ratings are Nothing, or Just
   , endTime    :: UTCTime
     -- ^ End of the answering round
   } deriving (Show)
-
-data Vote = NO_VOTE | INVALID | VALID
-  deriving (Show, Eq)
 
 createGame :: PlayerName -> Game 'GameLoading
 createGame host = Game
@@ -75,6 +75,12 @@ createGame host = Game
   , rounds = []
   , status = SGameLoading
   }
+
+getScores :: Game status -> Map PlayerName Int
+getScores = Map.unionsWith (+) . map scoreRound . rounds
+  where
+    scoreRound = fmap scorePlayer . answers
+    scorePlayer = Map.size . Map.filter ((== Just True) . snd)
 
 {- Players -}
 
@@ -110,9 +116,9 @@ markGameDone game = game { status = SGameDone }
 {- Game round logistics + operations -}
 
 isRoundDone :: GameRound -> Bool
-isRoundDone = all (all isAnswerVoted) . answers
+isRoundDone = all (all isAnswerRated) . answers
   where
-    isAnswerVoted = (/= NO_VOTE) . snd
+    isAnswerRated = isJust . snd
 
 getCurrRound :: Game 'GameInProgress -> GameRound
 getCurrRound = last . rounds
@@ -152,6 +158,22 @@ startRound game = do
     numCategories = 12
     roundDuration = 3 * 60 -- 3 minutes
 
+-- | Register the given ratings, which determine whether a player's answer is valid.
+--
+-- Invariant: for every player/category pair in a game round, the player/category pair MUST exist
+-- in the ratings map.
+finalizeRound :: Map PlayerName (Map Category Bool) -> GameRound -> GameRound
+finalizeRound allRatings gameRound = gameRound
+  { answers = Map.mapWithKey registerRatings $ answers gameRound
+  }
+  where
+    registerRatings playerName = Map.mapWithKey (registerRating playerName)
+    registerRating playerName category (answer, _) =
+      let isValid = fromMaybe
+            (error $ "Could not find rating for: " ++ show (playerName, category))
+            $ Map.lookup category <=< Map.lookup playerName $ allRatings
+      in (answer, Just isValid)
+
 {- Categories -}
 
 type Category = Text
@@ -168,10 +190,10 @@ getAnswers = fmap (fmap fst) . answers
 
 addPlayerAnswers :: PlayerName -> Map Category Answer -> GameRound -> GameRound
 addPlayerAnswers playerName playerAnswers gameRound = gameRound
-  { answers = Map.insert playerName (initVotes playerAnswers) (answers gameRound)
+  { answers = Map.insert playerName (initRatings playerAnswers) (answers gameRound)
   }
   where
-    initVotes = fmap (, NO_VOTE)
+    initRatings = fmap (, Nothing)
 
 -- | True if all players have submitted their answers.
 haveAllPlayersAnswered :: Game 'GameInProgress -> Bool
