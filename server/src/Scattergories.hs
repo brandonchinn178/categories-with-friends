@@ -20,7 +20,6 @@ import Data.Aeson (FromJSON, ToJSON, eitherDecode', encode)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
-import qualified Data.Set as Set
 import Network.WebSockets
     ( Connection
     , ConnectionException(..)
@@ -107,7 +106,7 @@ setupPlayer playerName playerConn (ActiveGame activeGame@ActiveGameState{..}) = 
             , playerConns = Map.insert playerName playerConn playerConns
             }
       sendToAll updatedActiveGame $
-        RefreshPlayerListMessage (getHost updatedGame) (Set.toList $ getPlayers updatedGame)
+        RefreshPlayerListMessage (getHost updatedGame) (getPlayers updatedGame)
       return $ ActiveGame updatedActiveGame
     SGameDone -> throwIO $ CannotJoinGameError "game is over"
     SGameInProgress -> do
@@ -118,7 +117,7 @@ setupPlayer playerName playerConn (ActiveGame activeGame@ActiveGameState{..}) = 
       return $ ActiveGame activeGame
   where
     isPlayerAlreadyConnected = playerName `Map.member` playerConns
-    isPlayerInGroup = playerName `Set.member` getPlayers game
+    isPlayerInGroup = playerName `elem` getPlayers game
 
 -- | Start a new round in the game.
 startGameRound :: ActiveGame -> IO ActiveGame

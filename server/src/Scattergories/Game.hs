@@ -74,8 +74,8 @@ getHost = host
 initPlayer :: PlayerName -> Game 'GameLoading -> Game 'GameLoading
 initPlayer playerName game = game { players = Set.insert playerName (players game) }
 
-getPlayers :: Game staus -> Set PlayerName
-getPlayers = players
+getPlayers :: Game status -> [PlayerName]
+getPlayers = Set.toList . players
 
 {- Game status -}
 
@@ -162,7 +162,7 @@ addPlayerAnswers playerName playerAnswers gameRound = gameRound
 
 -- | True if all players have submitted their answers.
 haveAllPlayersAnswered :: Game 'GameInProgress -> Bool
-haveAllPlayersAnswered game@Game{players} = all (`Map.member` answers) players
+haveAllPlayersAnswered game = all (`Map.member` answers) $ getPlayers game
   where
     GameRound{answers} = getCurrRound game
 
