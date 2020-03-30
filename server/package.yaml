@@ -1,0 +1,50 @@
+name: scattergories
+version: 0.0.1
+verbatim:
+  cabal-version: '>= 1.10'
+author:
+  - Brandon Chinn <brandonchinn178@gmail.com>
+maintainer:
+  - Brandon Chinn <brandonchinn178@gmail.com>
+
+flags:
+  serve_static:
+    manual: true
+    default: false
+
+ghc-options:
+  - -Wall
+  - -Werror
+  - -Wcompat
+  - -Wincomplete-record-updates
+  - -Wincomplete-uni-patterns
+  - -Wnoncanonical-monad-instances
+
+dependencies:
+  - aeson
+  - base
+  - containers
+  - file-embed
+  - MonadRandom
+  - random-shuffle
+  - text
+  - time
+  - websockets
+
+library:
+  source-dirs: src
+
+executable:
+  source-dirs: exe
+  main: Main.hs
+  dependencies:
+    - scattergories
+    - servant-server
+    - servant-websockets
+    - warp
+  when:
+    - condition: flag(serve_static)
+      cpp-options:
+        - -D__SERVE_STATIC__
+      dependencies:
+        - wai-app-static

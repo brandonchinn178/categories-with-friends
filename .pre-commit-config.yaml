@@ -1,0 +1,13 @@
+repos:
+  - repo: local
+    hooks:
+      - id: hlint
+        name: hlint
+        language: system
+        entry: scripts/run-hlint.sh
+        files: '\.hs$'
+      - id: stylish-haskell
+        name: stylish-haskell
+        language: script
+        entry: scripts/run-stylish-haskell.sh
+        files: '\.hs$'
