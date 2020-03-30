@@ -27,7 +27,8 @@ class ApiClient {
   // TODO: Setup web socket if not yet setup..
   void init(String gameId, String player) {}
 
-  // TODO: Parse errors.
+  void sendRequest(String json) {}
+
   void _routeResponse(String json) {
     final object = jsonDecode(json);
     String error = object['error'];
