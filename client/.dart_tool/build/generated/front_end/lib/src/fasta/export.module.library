@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["front_end|lib/src/fasta/builder/builder.dart","front_end|lib/src/fasta/combinator.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

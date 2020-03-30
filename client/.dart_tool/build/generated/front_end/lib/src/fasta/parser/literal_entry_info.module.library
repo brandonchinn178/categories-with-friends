@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["front_end|lib/src/fasta/scanner.dart","front_end|lib/src/fasta/parser/identifier_context.dart","front_end|lib/src/fasta/parser/literal_entry_info_impl.dart","front_end|lib/src/fasta/parser/parser.dart","front_end|lib/src/fasta/parser/util.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

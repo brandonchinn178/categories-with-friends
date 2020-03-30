@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["angular|lib/src/di/injector/injector.dart","angular|lib/src/core/linker/component_factory.dart","angular|lib/src/core/linker/component_loader.dart","angular|lib/src/core/linker/element_ref.dart","angular|lib/src/core/linker/template_ref.dart","angular|lib/src/core/linker/view_ref.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

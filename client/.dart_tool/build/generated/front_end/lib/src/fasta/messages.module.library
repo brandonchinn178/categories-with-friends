@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["kernel|lib/ast.dart","front_end|lib/src/fasta/compiler_context.dart","front_end|lib/src/fasta/fasta_codes.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

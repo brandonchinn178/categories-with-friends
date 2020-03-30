@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["kernel|lib/clone.dart","kernel|lib/ast.dart","kernel|lib/binary/ast_to_binary.dart","kernel|lib/binary/limited_ast_to_binary.dart","kernel|lib/text/ast_to_text.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["async","io"],"hasMain":false}

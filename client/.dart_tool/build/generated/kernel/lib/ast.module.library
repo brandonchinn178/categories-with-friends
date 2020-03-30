@@ -1,0 +1,1 @@
+{"isEntrypoint":true,"deps":["kernel|lib/visitor.dart","kernel|lib/canonical_name.dart","kernel|lib/transformations/flags.dart","kernel|lib/text/ast_to_text.dart","kernel|lib/type_algebra.dart","kernel|lib/type_environment.dart","kernel|lib/coq_annot.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["convert"],"hasMain":false}

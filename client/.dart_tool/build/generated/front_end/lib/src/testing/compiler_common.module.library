@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["kernel|lib/ast.dart","front_end|lib/src/api_prototype/front_end.dart","front_end|lib/src/api_prototype/memory_file_system.dart","front_end|lib/src/compute_platform_binaries_location.dart","front_end|lib/src/fasta/hybrid_file_system.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["async"],"hasMain":false}

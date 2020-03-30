@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["angular|lib/src/platform/browser/exceptions.dart","angular|lib/src/di/reflector.dart","angular|lib/core.template.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

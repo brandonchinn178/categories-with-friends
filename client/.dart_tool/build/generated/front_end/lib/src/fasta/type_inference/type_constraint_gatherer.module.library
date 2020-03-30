@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["kernel|lib/ast.dart","kernel|lib/type_algebra.dart","front_end|lib/src/fasta/type_inference/type_schema.dart","front_end|lib/src/fasta/type_inference/type_schema_environment.dart","front_end|lib/src/fasta/names.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

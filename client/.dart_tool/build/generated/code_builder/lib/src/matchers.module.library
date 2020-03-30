@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["matcher|lib/matcher.dart","code_builder|lib/src/base.dart","code_builder|lib/src/emitter.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["args|lib/args.dart","build|lib/build.dart","logging|lib/logging.dart","meta|lib/meta.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

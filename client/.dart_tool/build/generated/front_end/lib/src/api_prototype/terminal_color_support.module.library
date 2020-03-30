@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["front_end|lib/src/fasta/colors.dart","front_end|lib/src/api_prototype/diagnostic_message.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["convert","io"],"hasMain":false}

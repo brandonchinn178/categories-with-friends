@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["angular|lib/src/core/linker/component_factory.dart","angular|lib/src/platform/browser/tools/common_tools.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["js"],"hasMain":false}

@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["built_collection|lib/src/list.dart","built_collection|lib/src/set.dart"],"parts":["built_collection|lib/src/iterable/built_iterable.dart"],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

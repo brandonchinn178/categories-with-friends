@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["angular|lib/src/runtime.dart","angular|lib/src/core/di.dart","angular|lib/src/core/linker/component_factory.dart","angular|lib/src/core/linker/component_loader.dart","angular|lib/src/core/linker/component_resolver.dart","angular|lib/src/core/linker/view_container_ref.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["async"],"hasMain":false}

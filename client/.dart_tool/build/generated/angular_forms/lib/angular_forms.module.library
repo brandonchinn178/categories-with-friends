@@ -1,0 +1,1 @@
+{"isEntrypoint":true,"deps":["angular_forms|lib/src/directives/radio_control_value_accessor.dart","angular_forms|lib/src/directives.dart","angular_forms|lib/src/form_builder.dart","angular_forms|lib/src/model.dart","angular_forms|lib/src/validators.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

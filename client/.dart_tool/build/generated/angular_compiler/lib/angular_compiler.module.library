@@ -1,0 +1,1 @@
+{"isEntrypoint":true,"deps":["angular_compiler|lib/src/analyzer.dart","angular_compiler|lib/src/asset.dart","angular_compiler|lib/src/emitter/injector.dart","angular_compiler|lib/src/emitter/reflector.dart","angular_compiler|lib/src/outliner.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

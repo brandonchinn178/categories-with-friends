@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["source_span|lib/source_span.dart","angular_ast|lib/src/token/tokens.dart","angular_ast|lib/src/visitor.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

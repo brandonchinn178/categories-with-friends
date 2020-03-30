@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["angular_router|lib/src/router/router_outlet_token.dart","angular_router|lib/src/directives/router_outlet_directive.template.dart","angular|lib/angular.template.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

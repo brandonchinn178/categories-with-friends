@@ -1,0 +1,1 @@
+{"isEntrypoint":true,"deps":["built_collection|lib/src/list.dart","built_collection|lib/src/list_multimap.dart","built_collection|lib/src/map.dart","built_collection|lib/src/set.dart","built_collection|lib/src/set_multimap.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

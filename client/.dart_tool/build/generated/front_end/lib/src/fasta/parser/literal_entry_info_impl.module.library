@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["front_end|lib/src/scanner/token.dart","front_end|lib/src/fasta/parser/literal_entry_info.dart","front_end|lib/src/fasta/parser/parser.dart","front_end|lib/src/fasta/parser/util.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

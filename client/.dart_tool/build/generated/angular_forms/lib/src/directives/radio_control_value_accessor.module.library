@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["angular|lib/angular.dart","angular_forms|lib/src/directives/shared.dart","angular_forms|lib/src/directives/control_value_accessor.dart","angular_forms|lib/src/directives/ng_control.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["html","js_util"],"hasMain":false}

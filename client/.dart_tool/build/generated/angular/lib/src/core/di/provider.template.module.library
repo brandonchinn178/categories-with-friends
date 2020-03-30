@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["angular|lib/src/core/di/provider.dart","angular|lib/src/di/providers.template.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

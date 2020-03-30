@@ -1,0 +1,1 @@
+{"isEntrypoint":true,"deps":["angular|lib/angular.dart","angular_router|lib/src/location.dart","angular_router|lib/src/location/testing/mock_location_strategy.dart","angular_router|lib/src/router/router.dart","angular_router|lib/src/router/router_impl.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

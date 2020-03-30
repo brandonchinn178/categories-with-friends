@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["collection|lib/collection.dart","meta|lib/meta.dart","angular|lib/src/compiler/compile_metadata.dart","angular|lib/src/compiler/output/output_ast.dart","angular|lib/src/compiler/view_compiler/constants.dart","angular|lib/src/compiler/view_compiler/view_compiler_utils.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

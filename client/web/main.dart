@@ -5,6 +5,7 @@ import 'package:router_example/app_component.template.dart' as ng;
 import 'main.template.dart' as self;
 
 const useHashLS = false;
+
 @GenerateInjector(
   routerProvidersHash, // You can use routerProviders in production
 )

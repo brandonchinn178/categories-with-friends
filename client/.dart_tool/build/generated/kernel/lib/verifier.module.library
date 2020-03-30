@@ -1,0 +1,1 @@
+{"isEntrypoint":true,"deps":["kernel|lib/ast.dart","kernel|lib/transformations/flags.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

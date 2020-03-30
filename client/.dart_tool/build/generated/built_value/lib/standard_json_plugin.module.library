@@ -1,0 +1,1 @@
+{"isEntrypoint":true,"deps":["built_collection|lib/built_collection.dart","built_value|lib/json_object.dart","built_value|lib/serializer.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["convert"],"hasMain":false}

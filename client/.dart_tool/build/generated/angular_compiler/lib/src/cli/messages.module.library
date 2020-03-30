@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["meta|lib/meta.dart","source_span|lib/source_span.dart","angular_compiler|lib/src/cli/messages/messages.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

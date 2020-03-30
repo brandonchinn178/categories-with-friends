@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["kernel|lib/kernel.dart","front_end|lib/src/base/processed_options.dart","front_end|lib/src/fasta/compiler_context.dart","front_end|lib/src/fasta/incremental_compiler.dart","front_end|lib/src/fasta/scanner/string_scanner.dart","front_end|lib/src/api_prototype/compiler_options.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["async"],"hasMain":false}

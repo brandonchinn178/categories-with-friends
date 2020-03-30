@@ -1,0 +1,1 @@
+{"isEntrypoint":true,"deps":["kernel|lib/ast.dart","kernel|lib/coq_annot.dart","kernel|lib/core_types.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["io"],"hasMain":false}

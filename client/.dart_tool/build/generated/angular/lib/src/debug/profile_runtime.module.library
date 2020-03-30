@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["angular|lib/src/debug/profile_keys.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["html","js","js_util"],"hasMain":false}

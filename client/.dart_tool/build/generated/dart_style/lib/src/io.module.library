@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["path|lib/path.dart","dart_style|lib/src/dart_formatter.dart","dart_style|lib/src/exceptions.dart","dart_style|lib/src/formatter_options.dart","dart_style|lib/src/source_code.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["io"],"hasMain":false}

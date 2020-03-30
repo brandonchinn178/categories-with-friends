@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["kernel|lib/ast.dart","front_end|lib/src/fasta/kernel/kernel_builder.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

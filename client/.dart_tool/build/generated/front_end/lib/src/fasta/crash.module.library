@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["front_end|lib/src/fasta/problems.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["async","convert","io"],"hasMain":false}

@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["built_collection|lib/built_collection.dart","built_value|lib/serializer.dart","built_value|lib/src/double_serializer.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

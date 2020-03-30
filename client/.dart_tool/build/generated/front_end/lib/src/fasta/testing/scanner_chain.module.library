@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["testing|lib/testing.dart","front_end|lib/src/fasta/scanner.dart","front_end|lib/src/fasta/scanner/io.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

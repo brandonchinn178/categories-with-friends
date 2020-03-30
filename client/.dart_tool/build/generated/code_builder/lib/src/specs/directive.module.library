@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["built_value|lib/built_value.dart","collection|lib/collection.dart","meta|lib/meta.dart","code_builder|lib/src/base.dart","code_builder|lib/src/visitors.dart"],"parts":["code_builder|lib/src/specs/directive.g.dart"],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

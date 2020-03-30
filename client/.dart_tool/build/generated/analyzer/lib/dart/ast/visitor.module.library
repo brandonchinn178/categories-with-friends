@@ -1,0 +1,1 @@
+{"isEntrypoint":true,"deps":["analyzer|lib/dart/ast/ast.dart","analyzer|lib/src/dart/ast/utilities.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["collection"],"hasMain":false}

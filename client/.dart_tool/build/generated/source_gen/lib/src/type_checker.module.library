@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["analyzer|lib/dart/ast/ast.dart","analyzer|lib/src/dart/analysis/results.dart","analyzer|lib/dart/constant/value.dart","analyzer|lib/dart/element/element.dart","analyzer|lib/dart/element/type.dart","source_span|lib/source_span.dart","source_gen|lib/src/utils.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["mirrors"],"hasMain":false}

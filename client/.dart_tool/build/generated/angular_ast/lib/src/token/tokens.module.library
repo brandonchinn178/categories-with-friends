@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["angular_ast|lib/src/hash.dart"],"parts":["angular_ast|lib/src/token/lexeme.dart","angular_ast|lib/src/token/token_types.dart"],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

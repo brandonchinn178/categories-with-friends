@@ -1,14 +1,14 @@
 import 'package:angular_router/angular_router.dart';
 
-const idParam = 'id';
+const gameIdParam = 'gameid';
+const playerParam = 'player';
 
 class RoutePaths {
-  static final crises = RoutePath(path: 'crises');
-  static final heroes = RoutePath(path: 'heroes');
-  static final hero = RoutePath(path: '${heroes.path}/:$idParam');
+  static final root = RoutePath(path: '/');
+  static final gameHome = RoutePath(path: ':$gameIdParam');
+  static final game = RoutePath(path: '${gameHome.path}/:$playerParam');
 }
 
-int getId(Map<String, String> parameters) {
-  final id = parameters[idParam];
-  return id == null ? null : int.tryParse(id);
-}
+String getGameId(Map<String, String> parameters) => parameters[gameIdParam];
+
+String getPlayer(Map<String, String> parameters) => parameters[playerParam];

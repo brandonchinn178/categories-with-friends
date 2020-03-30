@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["kernel|lib/ast.dart","kernel|lib/core_types.dart","kernel|lib/visitor.dart","front_end|lib/src/fasta/source/source_loader.dart","front_end|lib/src/fasta/kernel/redirecting_factory_body.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["core"],"hasMain":false}

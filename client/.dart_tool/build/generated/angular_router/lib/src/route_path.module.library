@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["angular_router|lib/src/location.dart","angular_router|lib/src/route_definition.dart","angular_router|lib/src/url.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

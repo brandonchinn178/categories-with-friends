@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["front_end|lib/src/fasta/compiler_context.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["convert","io"],"hasMain":false}

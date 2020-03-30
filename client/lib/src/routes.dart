@@ -1,36 +1,50 @@
 import 'package:angular_router/angular_router.dart';
 
-import 'crisis/crisis_list_component.template.dart' as crisis_list_template;
-import 'hero/hero_list_component.template.dart' as hero_list_template;
-import 'hero/hero_component.template.dart' as hero_template;
+import 'root/root.template.dart';
+import 'game/game_home.template.dart';
+import 'game/game.template.dart';
 import 'not_found_component.template.dart' as not_found_template;
 import 'route_paths.dart';
 
 export 'route_paths.dart';
 
+import 'package:angular_router/angular_router.dart';
+
+const gameIdParam = 'gameid';
+const playerParam = 'player';
+
+class RoutePaths {
+  static final root = RoutePath(path: '/');
+  static final gameHome = RoutePath(path: ':$gameIdParam');
+  static final game = RoutePath(path: '${gameHome.path}/:$playerParam');
+}
+
 class Routes {
-  static final crises = RouteDefinition(
-    routePath: RoutePaths.crises,
-    component: crisis_list_template.CrisisListComponentNgFactory,
+  String getGameId(Map<String, String> parameters) => parameters[gameIdParam];
+  String getPlayer(Map<String, String> parameters) => parameters[playerParam];
+
+  static final root = RouteDefinition(
+    routePath: RoutePaths.root,
+    component: RootComponentNgFactory,
   );
 
-  static final heroes = RouteDefinition(
-    routePath: RoutePaths.heroes,
-    component: hero_list_template.HeroListComponentNgFactory,
+  static final gameHome = RouteDefinition(
+    routePath: RoutePaths.gameHome,
+    component: GameHomeComponentNgFactory,
   );
 
-  static final hero = RouteDefinition(
-    routePath: RoutePaths.hero,
-    component: hero_template.HeroComponentNgFactory,
+  static final game = RouteDefinition(
+    routePath: RoutePaths.game,
+    component: GameHomeComponentNgFactory,
   );
 
   static final all = <RouteDefinition>[
-    crises,
-    heroes,
-    hero,
+    root,
+    gameHome,
+    game,
     RouteDefinition.redirect(
       path: '',
-      redirectTo: RoutePaths.heroes.toUrl(),
+      redirectTo: RoutePaths.root.toUrl(),
     ),
     RouteDefinition(
       path: '.*',

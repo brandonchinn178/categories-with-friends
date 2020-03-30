@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["source_span|lib/source_span.dart","string_scanner|lib/string_scanner.dart","angular_ast|lib/src/ast.dart","angular_ast|lib/src/exception_handler/exception_handler.dart","angular_ast|lib/src/token/tokens.dart","angular_ast|lib/src/parser/reader.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

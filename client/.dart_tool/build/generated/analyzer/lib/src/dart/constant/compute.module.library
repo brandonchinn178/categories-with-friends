@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["analyzer|lib/dart/analysis/declared_variables.dart","analyzer|lib/src/dart/analysis/experiments.dart","analyzer|lib/src/dart/constant/evaluation.dart","analyzer|lib/src/dart/element/element.dart","analyzer|lib/src/generated/resolver.dart","analyzer|lib/src/summary/link.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

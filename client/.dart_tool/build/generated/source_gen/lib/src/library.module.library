@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["analyzer|lib/dart/element/element.dart","build|lib/build.dart","path|lib/path.dart","source_gen|lib/src/constants/reader.dart","source_gen|lib/src/type_checker.dart","source_gen|lib/src/utils.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

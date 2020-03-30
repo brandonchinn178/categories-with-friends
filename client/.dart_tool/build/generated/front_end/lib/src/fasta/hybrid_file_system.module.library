@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["front_end|lib/src/api_prototype/file_system.dart","front_end|lib/src/api_prototype/memory_file_system.dart","front_end|lib/src/api_prototype/standard_file_system.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["async"],"hasMain":false}

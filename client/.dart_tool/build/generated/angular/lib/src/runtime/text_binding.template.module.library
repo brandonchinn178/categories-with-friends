@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["angular|lib/src/runtime/text_binding.dart","angular|lib/src/core/linker/app_view_utils.template.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

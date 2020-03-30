@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["kernel|lib/type_algebra.dart","kernel|lib/class_hierarchy.dart","kernel|lib/clone.dart","kernel|lib/core_types.dart","kernel|lib/transformations/flags.dart","kernel|lib/text/ast_to_text.dart","kernel|lib/type_environment.dart","kernel|lib/src/bounds_checks.dart","kernel|lib/ast.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

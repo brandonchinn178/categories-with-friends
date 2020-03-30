@@ -1,0 +1,1 @@
+{"isEntrypoint":true,"deps":["analyzer|lib/dart/ast/resolution_map.dart","analyzer|lib/src/dart/ast/resolution_map.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

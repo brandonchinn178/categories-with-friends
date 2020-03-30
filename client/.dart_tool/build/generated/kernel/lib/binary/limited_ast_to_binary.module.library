@@ -1,0 +1,1 @@
+{"isEntrypoint":true,"deps":["kernel|lib/ast.dart","kernel|lib/binary/ast_to_binary.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["angular_router|lib/src/location/testing/mock_location_strategy.dart","angular|lib/src/di/reflector.dart","angular|lib/angular.template.dart","angular_router|lib/src/location/location_strategy.template.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

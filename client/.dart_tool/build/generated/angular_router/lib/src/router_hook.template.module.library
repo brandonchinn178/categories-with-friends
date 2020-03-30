@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["angular_router|lib/src/router_hook.dart","angular_router|lib/src/router/navigation_params.template.dart","angular_router|lib/src/router/router_state.template.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

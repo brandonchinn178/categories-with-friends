@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["source_gen|lib/src/generator.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["convert"],"hasMain":false}

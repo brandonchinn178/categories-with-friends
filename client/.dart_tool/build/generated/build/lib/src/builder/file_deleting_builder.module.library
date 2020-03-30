@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["glob|lib/glob.dart","build|lib/src/builder/post_process_build_step.dart","build|lib/src/builder/post_process_builder.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["async"],"hasMain":false}

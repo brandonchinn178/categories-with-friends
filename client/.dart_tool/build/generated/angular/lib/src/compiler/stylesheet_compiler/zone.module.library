@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["angular|lib/src/compiler/offline_compiler.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["async"],"hasMain":false}

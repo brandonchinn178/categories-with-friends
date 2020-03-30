@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["kernel|lib/ast.dart","front_end|lib/src/fasta/problems.dart","front_end|lib/src/fasta/kernel/kernel_builder.dart","front_end|lib/src/fasta/modifier.dart","front_end|lib/src/fasta/dill/dill_library_builder.dart","front_end|lib/src/fasta/dill/dill_member_builder.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

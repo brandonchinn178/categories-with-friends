@@ -1,0 +1,1 @@
+{"isEntrypoint":true,"deps":["kernel|lib/ast.dart","kernel|lib/class_hierarchy.dart","kernel|lib/core_types.dart","kernel|lib/type_algebra.dart","kernel|lib/type_environment.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["angular_ast|lib/src/ast.dart","angular_ast|lib/src/visitors/desugar_visitor.dart","angular_ast|lib/src/visitors/humanizing.dart","angular_ast|lib/src/visitors/identity.dart","angular_ast|lib/src/visitors/recursive.dart","angular_ast|lib/src/visitors/whitespace.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

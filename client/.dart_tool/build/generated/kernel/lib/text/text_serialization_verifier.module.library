@@ -1,0 +1,1 @@
+{"isEntrypoint":true,"deps":["kernel|lib/ast.dart","kernel|lib/text/serializer_combinators.dart","kernel|lib/text/text_reader.dart","kernel|lib/text/text_serializer.dart","kernel|lib/visitor.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

@@ -1,0 +1,1 @@
+{"isEntrypoint":true,"deps":["kernel|lib/ast.dart","kernel|lib/canonical_name.dart","kernel|lib/text/text_serializer.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["convert"],"hasMain":false}

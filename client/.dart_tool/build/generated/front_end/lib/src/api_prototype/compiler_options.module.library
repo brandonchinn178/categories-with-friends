@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["kernel|lib/target/targets.dart","front_end|lib/src/api_prototype/diagnostic_message.dart","front_end|lib/src/api_prototype/experimental_flags.dart","front_end|lib/src/api_prototype/file_system.dart","front_end|lib/src/api_prototype/standard_file_system.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

@@ -1,0 +1,1 @@
+{"isEntrypoint":false,"deps":["dart_style|lib/src/source_code.dart","dart_style|lib/src/style_fix.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["convert","io"],"hasMain":false}
