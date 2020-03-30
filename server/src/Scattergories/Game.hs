@@ -56,11 +56,12 @@ import Data.Time (UTCTime, addUTCTime, getCurrentTime)
 import System.Random.Shuffle (shuffleM)
 
 data Game (status :: GameStatus) = Game
-  { host    :: PlayerName
-  , players :: Set PlayerName
-  , status  :: SGameStatus status
-  , rounds  :: [SomeGameRound]
-    -- ^ Invariant: non-empty if status is not GameLoading
+  { host       :: PlayerName
+  , players    :: Set PlayerName
+  , status     :: SGameStatus status
+  , pastRounds :: [GameRound 'RoundDone]
+  , currRound  :: Maybe SomeGameRound
+    -- ^ Invariant: Just if status is not GameLoading, otherwise Nothing
   } deriving (Show)
 
 data GameRound (status :: GameRoundStatus) = GameRound
@@ -84,14 +85,20 @@ createGame :: PlayerName -> Game 'GameLoading
 createGame host = Game
   { host
   , players = Set.empty
-  , rounds = []
   , status = SGameLoading
+  , pastRounds = []
+  , currRound = Nothing
   }
 
 getScores :: Game status -> Map PlayerName Int
-getScores = Map.unionsWith (+) . map scoreRound . rounds
+getScores game = Map.unionsWith (+) $ pastRoundsScores ++ currRoundScores
   where
-    scoreRound (SomeGameRound gameRound) = scorePlayer <$> answers gameRound
+    pastRoundsScores = map scoreRound $ pastRounds game
+    currRoundScores = case currRound game of
+      Nothing -> []
+      Just (SomeGameRound gameRound) -> [scoreRound gameRound]
+
+    scoreRound gameRound = scorePlayer <$> answers gameRound
     scorePlayer = Map.size . Map.filter ((== Just True) . snd)
 
 {- Players -}
@@ -141,34 +148,29 @@ getRoundStatus = status
 {- Game round logistics + operations -}
 
 fromCurrRound :: Game 'GameInProgress -> (forall status. GameRound status -> x) -> x
-fromCurrRound game f = fromGameRound $ last $ rounds game
-  where
-    fromGameRound (SomeGameRound gameRound) = f gameRound
+fromCurrRound game f = case currRound game of
+  Nothing -> error "invariant violated: currRound is Nothing when game is in progress"
+  Just (SomeGameRound gameRound) -> f gameRound
 
 setCurrRound :: GameRound status -> Game 'GameInProgress -> Game 'GameInProgress
-setCurrRound gameRound game = game { rounds = replaceLast (rounds game) }
-  where
-    replaceLast [] = error "setCurrRound: empty game rounds"
-    replaceLast [_] = [SomeGameRound gameRound]
-    replaceLast (x:xs) = x : replaceLast xs
+setCurrRound gameRound game = game { currRound = Just $ SomeGameRound gameRound }
 
 class CanBeStarted (status :: GameStatus) where
   addRound :: GameRound 'RoundBeingAnswered -> Game status -> Game 'GameInProgress
   getNextRoundNum :: Game status -> Int
 
 instance CanBeStarted 'GameLoading where
-  addRound gameRound game = game
-    { rounds = [SomeGameRound gameRound]
-    , status = SGameInProgress
-    }
+  addRound gameRound game = setCurrRound gameRound $ game { status = SGameInProgress }
   getNextRoundNum = const 0
 
 instance CanBeStarted 'GameInProgress where
-  addRound gameRound game = game
-    { rounds = rounds game ++ [SomeGameRound gameRound]
-    }
+  addRound gameRound game = fromCurrRound game $ \lastRound ->
+    case getRoundStatus lastRound of
+      SRoundDone -> setCurrRound gameRound game { pastRounds = pastRounds game ++ [lastRound] }
+      _ -> error "last round wasn't finished"
   getNextRoundNum game = fromCurrRound game ((+ 1) . roundNum)
 
+-- | Errors if the last round hasn't finished yet.
 startRound :: CanBeStarted status => Game status -> IO (Game 'GameInProgress, GameRound 'RoundBeingAnswered)
 startRound game = do
   categories <- take numCategories <$> shuffleM allCategories
