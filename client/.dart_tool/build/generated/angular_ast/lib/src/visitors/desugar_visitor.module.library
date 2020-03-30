@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["angular_ast|lib/src/ast.dart","angular_ast|lib/src/exception_handler/exception_handler.dart","angular_ast|lib/src/expression/micro.dart","angular_ast|lib/src/visitor.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

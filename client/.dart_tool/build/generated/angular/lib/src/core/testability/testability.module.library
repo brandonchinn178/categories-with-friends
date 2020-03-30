@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["angular|lib/src/core/zone/ng_zone.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["async","html"],"hasMain":false}

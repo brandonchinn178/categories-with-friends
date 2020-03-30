@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["angular|lib/src/security/dom_sanitization_service.dart","angular|lib/src/core/security.template.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

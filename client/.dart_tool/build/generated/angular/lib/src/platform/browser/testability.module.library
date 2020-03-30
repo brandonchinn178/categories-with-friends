@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["js|lib/js.dart","js|lib/js_util.dart","angular|lib/src/core/testability/testability.dart","angular|lib/src/runtime.dart","angular|lib/src/testability/js_api.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["html"],"hasMain":false}

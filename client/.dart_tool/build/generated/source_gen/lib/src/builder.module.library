@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["analyzer|lib/dart/element/element.dart","build|lib/build.dart","dart_style|lib/dart_style.dart","source_gen|lib/src/generated_output.dart","source_gen|lib/src/generator.dart","source_gen|lib/src/library.dart","source_gen|lib/src/utils.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["async","convert"],"hasMain":false}

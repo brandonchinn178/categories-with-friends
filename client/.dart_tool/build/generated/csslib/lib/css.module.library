@@ -1,1 +1,0 @@
-{"isEntrypoint":true,"deps":["args|lib/args.dart","path|lib/path.dart","source_span|lib/source_span.dart","csslib|lib/parser.dart","csslib|lib/src/messages.dart","csslib|lib/visitor.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["io"],"hasMain":true}

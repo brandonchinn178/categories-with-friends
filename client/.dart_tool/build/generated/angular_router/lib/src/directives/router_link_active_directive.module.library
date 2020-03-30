@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["collection|lib/collection.dart","angular|lib/angular.dart","angular|lib/src/runtime.dart","angular_router|lib/src/router/router.dart","angular_router|lib/src/router/router_state.dart","angular_router|lib/src/directives/router_link_directive.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["async","html"],"hasMain":false}

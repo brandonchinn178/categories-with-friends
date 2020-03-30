@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["meta|lib/meta.dart","source_span|lib/source_span.dart","angular_ast|lib/src/ast.dart","angular_ast|lib/src/exception_handler/exception_handler.dart","angular_ast|lib/src/lexer.dart","angular_ast|lib/src/parser/recursive.dart","angular_ast|lib/src/visitor.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

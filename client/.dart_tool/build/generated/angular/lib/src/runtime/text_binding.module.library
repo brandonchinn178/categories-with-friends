@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["meta|lib/dart2js.dart","angular|lib/src/core/linker/app_view_utils.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["html"],"hasMain":false}

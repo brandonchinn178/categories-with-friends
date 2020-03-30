@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["angular|lib/src/common/pipes/replace_pipe.dart","angular|lib/src/common/pipes/invalid_pipe_argument_exception.template.dart","angular|lib/core.template.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

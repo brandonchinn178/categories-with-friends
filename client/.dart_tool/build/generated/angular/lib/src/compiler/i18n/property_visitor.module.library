@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["source_span|lib/source_span.dart","angular|lib/src/compiler/expression_parser/ast.dart","angular|lib/src/compiler/template_parser.dart","angular|lib/src/compiler/i18n/message.dart","angular|lib/src/compiler/i18n/metadata.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

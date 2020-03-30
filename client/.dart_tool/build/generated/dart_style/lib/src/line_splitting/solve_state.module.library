@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["dart_style|lib/src/debug.dart","dart_style|lib/src/nesting_level.dart","dart_style|lib/src/rule/rule.dart","dart_style|lib/src/whitespace.dart","dart_style|lib/src/line_splitting/line_splitter.dart","dart_style|lib/src/line_splitting/rule_set.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

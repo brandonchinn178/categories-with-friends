@@ -1,1 +1,0 @@
-{"isEntrypoint":true,"deps":["angular|lib/angular.dart","angular_router|lib/angular_router.dart","router_example|lib/src/routes.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

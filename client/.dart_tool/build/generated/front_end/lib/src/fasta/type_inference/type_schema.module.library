@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["kernel|lib/ast.dart","kernel|lib/import_table.dart","kernel|lib/text/ast_to_text.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

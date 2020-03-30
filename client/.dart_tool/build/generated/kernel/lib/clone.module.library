@@ -1,1 +1,0 @@
-{"isEntrypoint":true,"deps":["kernel|lib/ast.dart","kernel|lib/type_algebra.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["core"],"hasMain":false}

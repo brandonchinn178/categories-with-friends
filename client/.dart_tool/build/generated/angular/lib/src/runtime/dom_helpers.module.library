@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["js|lib/js.dart","js|lib/js_util.dart","meta|lib/dart2js.dart","angular|lib/src/runtime/optimizations.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["html"],"hasMain":false}

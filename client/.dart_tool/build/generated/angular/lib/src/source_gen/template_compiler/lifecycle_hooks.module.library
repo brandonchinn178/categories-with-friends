@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["analyzer|lib/dart/element/element.dart","source_gen|lib/source_gen.dart","angular|lib/src/core/metadata.dart","angular|lib/src/core/metadata/lifecycle_hooks.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

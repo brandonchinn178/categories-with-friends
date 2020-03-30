@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["collection|lib/collection.dart","meta|lib/meta.dart","angular_ast|lib/src/ast.dart","angular_ast|lib/src/hash.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

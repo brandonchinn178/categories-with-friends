@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["analyzer|lib/error/error.dart","meta|lib/meta.dart","angular_ast|lib/src/hash.dart"],"parts":["angular_ast|lib/src/exception_handler/angular_parser_exception.dart","angular_ast|lib/src/exception_handler/exceptions.dart"],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

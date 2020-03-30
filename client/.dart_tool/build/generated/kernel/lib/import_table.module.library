@@ -1,1 +1,0 @@
-{"isEntrypoint":true,"deps":["kernel|lib/ast.dart","path|lib/path.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

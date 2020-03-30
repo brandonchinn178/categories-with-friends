@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["angular|lib/angular.dart","angular_router|lib/src/location/base_href.dart","angular_router|lib/src/location/platform_location.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["html"],"hasMain":false}

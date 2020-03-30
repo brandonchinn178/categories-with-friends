@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["code_builder|lib/code_builder.dart","meta|lib/meta.dart","angular_compiler|lib/src/analyzer/di/injector.dart","angular_compiler|lib/src/analyzer/di/tokens.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

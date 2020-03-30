@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["build|lib/build.dart","angular_compiler|lib/cli.dart","angular|lib/src/compiler/stylesheet_compiler/processor.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["async"],"hasMain":false}

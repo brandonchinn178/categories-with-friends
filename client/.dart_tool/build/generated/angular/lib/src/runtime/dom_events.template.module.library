@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["angular|lib/src/runtime/dom_events.dart","angular|lib/src/di/reflector.dart","angular|lib/core.template.dart","angular|lib/src/core/zone/ng_zone.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

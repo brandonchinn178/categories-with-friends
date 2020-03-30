@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["angular_forms|lib/src/directives/form_interface.dart","angular_forms|lib/src/model.template.dart","angular_forms|lib/src/directives/ng_control.template.dart","angular_forms|lib/src/directives/ng_control_group.template.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

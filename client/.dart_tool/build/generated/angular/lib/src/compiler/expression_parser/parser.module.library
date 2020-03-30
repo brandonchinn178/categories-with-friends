@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["angular_compiler|lib/cli.dart","angular|lib/src/compiler/compile_metadata.dart","angular|lib/src/facade/lang.dart","angular|lib/src/compiler/expression_parser/ast.dart","angular|lib/src/compiler/expression_parser/lexer.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

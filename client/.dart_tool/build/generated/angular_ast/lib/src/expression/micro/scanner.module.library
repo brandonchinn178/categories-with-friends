@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["string_scanner|lib/string_scanner.dart","angular_ast|lib/src/exception_handler/exception_handler.dart","angular_ast|lib/src/expression/micro/token.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

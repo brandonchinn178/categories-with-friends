@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["angular|lib/angular.dart","angular_forms|lib/src/directives/validators.dart","angular_forms|lib/src/model.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

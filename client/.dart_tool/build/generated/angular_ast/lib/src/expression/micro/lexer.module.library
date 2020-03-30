@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["meta|lib/meta.dart","angular_ast|lib/src/expression/micro/scanner.dart","angular_ast|lib/src/expression/micro/token.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

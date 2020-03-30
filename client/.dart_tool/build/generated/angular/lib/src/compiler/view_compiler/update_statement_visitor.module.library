@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["angular|lib/src/compiler/identifiers.dart","angular|lib/src/compiler/ir/model.dart","angular|lib/src/compiler/output/output_ast.dart","angular|lib/src/compiler/view_compiler/compile_view.dart","angular|lib/src/core/security.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

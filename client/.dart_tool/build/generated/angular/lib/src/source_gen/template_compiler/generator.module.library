@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["build|lib/build.dart","source_gen|lib/source_gen.dart","angular|lib/src/source_gen/common/url_resolver.dart","angular_compiler|lib/cli.dart","angular|lib/src/source_gen/template_compiler/code_builder.dart","angular|lib/src/source_gen/template_compiler/template_processor.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["async"],"hasMain":false}

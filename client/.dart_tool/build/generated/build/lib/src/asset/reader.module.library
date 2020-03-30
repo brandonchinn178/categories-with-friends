@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["crypto|lib/crypto.dart","convert|lib/convert.dart","glob|lib/glob.dart","build|lib/src/asset/id.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":["async","convert"],"hasMain":false}

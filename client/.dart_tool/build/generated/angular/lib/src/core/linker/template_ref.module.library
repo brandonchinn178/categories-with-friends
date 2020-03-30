@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["angular|lib/src/core/linker/app_view.dart","angular|lib/src/core/linker/element_ref.dart","angular|lib/src/core/linker/view_container.dart","angular|lib/src/core/linker/view_ref.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}

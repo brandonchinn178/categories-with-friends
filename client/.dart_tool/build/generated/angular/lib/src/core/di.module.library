@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["angular|lib/src/di/errors.dart","angular|lib/src/di/injector/injector.dart","angular|lib/src/di/injector/runtime.dart","angular|lib/src/di/module.dart","angular|lib/src/core/di/decorators.dart","angular|lib/src/core/di/opaque_token.dart","angular|lib/src/core/di/provider.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}
