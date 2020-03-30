@@ -20,8 +20,9 @@ module Scattergories.Game
   , getPlayers
   , Category
   , Answer
-  , GameRound(..)
+  , GameRound(GameRound, roundNum, categories, letter, endTime)
   , Vote(..)
+  , getAnswers
   , isRoundDone
   , getCurrRound
   , updateCurrRound
@@ -105,6 +106,9 @@ data GameRound = GameRound
 
 data Vote = NO_VOTE | INVALID | VALID
   deriving (Show, Eq)
+
+getAnswers :: GameRound -> Map PlayerName (Map Category Answer)
+getAnswers = fmap (fmap fst) . answers
 
 isRoundDone :: GameRound -> Bool
 isRoundDone = all (all isAnswerVoted) . answers

@@ -143,7 +143,7 @@ registerAnswers playerName playerAnswers activeGame@ActiveGameState{game} =
 
       when (haveAllPlayersAnswered game) $
         sendToAll updatedActiveGame $
-          StartValidationMessage $ fmap fst <$> answers (getCurrRound updatedGame)
+          StartValidationMessage $ getAnswers (getCurrRound updatedGame)
 
       pure updatedActiveGame
   where
