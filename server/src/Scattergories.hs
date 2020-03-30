@@ -95,8 +95,7 @@ servePlayer activeGameVar playerName playerConn = do
 -- new arrival.
 setupPlayer :: PlayerName -> Connection -> ActiveGame -> IO ActiveGame
 setupPlayer playerName playerConn (ActiveGame activeGame@ActiveGameState{..}) = do
-  when isPlayerAlreadyConnected $
-    throwIO $ CannotJoinGameError "you're already in the game"
+  when isPlayerAlreadyConnected $ throwCannotJoin "you're already in the game"
 
   case getStatus game of
     SGameLoading -> do
@@ -108,10 +107,9 @@ setupPlayer playerName playerConn (ActiveGame activeGame@ActiveGameState{..}) = 
       sendToAll updatedActiveGame $
         RefreshPlayerListMessage (getHost updatedGame) (getPlayers updatedGame)
       return $ ActiveGame updatedActiveGame
-    SGameDone -> throwIO $ CannotJoinGameError "game is over"
+    SGameDone -> throwCannotJoin "game is over"
     SGameInProgress -> do
-      unless isPlayerInGroup $
-        throwIO $ CannotJoinGameError "game already started without you"
+      unless isPlayerInGroup $ throwCannotJoin "game already started without you"
 
       let message = fromCurrRound game $ \gameRound ->
             case getRoundStatus gameRound of
@@ -124,6 +122,7 @@ setupPlayer playerName playerConn (ActiveGame activeGame@ActiveGameState{..}) = 
   where
     isPlayerAlreadyConnected = playerName `Map.member` playerConns
     isPlayerInGroup = playerName `elem` getPlayers game
+    throwCannotJoin = throwIO . CannotJoinGameError
 
 -- | Start a new round in the game.
 startGameRound :: ActiveGame -> IO ActiveGame
