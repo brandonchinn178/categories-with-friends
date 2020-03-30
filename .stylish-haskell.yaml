@@ -2,6 +2,9 @@
 # ref: https://github.com/jaspervdj/stylish-haskell/blob/master/data/stylish-haskell.yaml
 
 language_extensions:
+  # need to include any extensions hidden by CPP pragmas
+  - MultiParamTypeClasses
+  - OverloadedStrings
   - TemplateHaskell
 
 steps:

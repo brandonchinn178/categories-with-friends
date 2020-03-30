@@ -4,6 +4,8 @@
 {-# LANGUAGE TypeOperators #-}
 
 #ifdef __SERVE_STATIC__
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 #endif
 
@@ -18,7 +20,9 @@ import Servant
 import Servant.API.WebSocket (WebSocket)
 
 #ifdef __SERVE_STATIC__
-import Data.FileEmbed (embedStringFile)
+import Data.ByteString (ByteString)
+import qualified Data.ByteString.Lazy as ByteStringL
+import Data.FileEmbed (embedFile)
 import WaiAppStatic.Storage.Embedded (embeddedSettings)
 import WaiAppStatic.Types (StaticSettings(..))
 #endif
@@ -72,17 +76,38 @@ loadOrCreateGame platformVar gameId playerName =
 {- Serving static files -}
 
 #ifdef __SERVE_STATIC__
-type StaticAPI = Raw
+data HTML
+
+instance Accept HTML where
+  contentType _ = "text/html"
+
+instance MimeRender HTML ByteString where
+  mimeRender _ = ByteStringL.fromStrict
+
+type StaticAPI =
+       "static" :> Raw
+  :<|> Capture "gameId" Text :> Capture "playerId" PlayerName :> Get '[HTML] ByteString
+  :<|> Capture "gameId" Text :> Get '[HTML] ByteString
+  :<|> Get '[HTML] ByteString
 
 serverStaticAPI :: Server StaticAPI
-serverStaticAPI = serveDirectoryWith staticSettings
+serverStaticAPI =
+       serveStatic
+  :<|> (\_ _ -> serveHTML)
+  :<|> (\_ -> serveHTML)
+  :<|> serveHTML
+
+serveHTML :: Handler ByteString
+serveHTML = pure $(embedFile "../public/index.html")
+
+serveStatic :: Server Raw
+serveStatic = serveDirectoryWith staticSettings
   where
     staticSettings = (embeddedSettings staticFiles)
       { ssListing = Nothing -- disallow listing directory of static files
       }
     staticFiles =
-      [ ("index.html", $(embedStringFile "../public/index.html"))
-      , ("static/index.js", $(embedStringFile "../public/index.js"))
+      [ ("index.js", $(embedFile "../public/index.js"))
       ]
 #else
 type StaticAPI = EmptyAPI
