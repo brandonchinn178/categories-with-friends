@@ -1,5 +1,6 @@
 import 'package:angular/angular.dart';
 import 'package:angular_router/angular_router.dart';
+import 'package:angular_components/material_checkbox/material_checkbox.dart';
 import 'package:angular_components/material_input/material_input.dart';
 import 'package:angular_components/material_button/material_button.dart';
 
@@ -13,7 +14,13 @@ enum Phase { lobby, inRound, postRound, endGame }
   selector: 'game',
   templateUrl: 'game.html',
   styleUrls: ['game.css'],
-  directives: [materialInputDirectives, MaterialButtonComponent, NgIf, NgFor],
+  directives: [
+    materialInputDirectives,
+    MaterialButtonComponent,
+    MaterialCheckboxComponent,
+    NgIf,
+    NgFor
+  ],
   exports: [Phase],
   providers: [
     ClassProvider(ApiClient),

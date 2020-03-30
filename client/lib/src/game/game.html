@@ -36,11 +36,13 @@ Share this link with other people: <a [href]="gameHomeUrl">{{gameHomeUrl}}</a>
     <ul class="answers">
       <ng-container *ngFor="let player of players">
         <li>{{player}}: {{categoryToPlayerToAnswers[category][player]}}</li>
-          <!-- Add checkbox where host can mark words -->
+        <material-checkbox
+          [(ngModel)]="playerToCategoryToValid[player][category]"
+          [disabled]="!isHost">
+        </material-checkbox>
       </ng-container>
     </ul>
   </div>
-  <!-- TODO: Add a timer that triggers submitAnswers -->
   <material-button (trigger)="submitValidation"
                    [disabled]="!isHost">
     Submit
