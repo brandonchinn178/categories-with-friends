@@ -1,7 +1,13 @@
 <div class="card">
+  <div class="description">
+    Create a game here.
+  </div>
   <material-input label="Enter game id" [(ngModel)]="gameId"
-                  [error]="errorMsg"
+                  floatingLabel>
+  </material-input>
+  <material-input label="Enter username" [(ngModel)]="player"
                   floatingLabel>
   </material-input>
   <material-button (trigger)="onEnter">Enter</material-button>
+  <div class="error">{{errorMsg}}</div>
 </div>

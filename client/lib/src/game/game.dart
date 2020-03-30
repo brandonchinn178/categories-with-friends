@@ -18,7 +18,17 @@ class GameComponent implements OnActivate {
   String _gameId;
   String _player;
 
-  GameComponent(this._apiClient);
+  String get gameHomeUrl => _gameId == null
+      ? ''
+      : '${_uri.origin}${RoutePaths.gameHome.toUrl(parameters: {
+          gameIdParam: _gameId
+        })}';
+
+  Uri _uri;
+
+  GameComponent(this._apiClient) {
+    _uri = Uri.base;
+  }
 
   @override
   void onActivate(_, RouterState current) {

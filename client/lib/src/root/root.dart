@@ -16,9 +16,10 @@ class RootComponent {
   final Router _router;
   RootComponent(this._router);
 
+  String player = '';
   String gameId = '';
-  String get _gameUrl =>
-      RoutePaths.gameHome.toUrl(parameters: {gameIdParam: gameId});
+  String get _gameUrl => RoutePaths.game
+      .toUrl(parameters: {gameIdParam: gameId, playerParam: player});
 
   String _errorMsg = '';
   String get errorMsg => _errorMsg;
@@ -28,6 +29,10 @@ class RootComponent {
 
     if (isBlank(gameId)) {
       _errorMsg = "Game id can't be blank";
+      return;
+    }
+    if (isBlank(player)) {
+      _errorMsg = "Username can't be blank";
       return;
     }
 
