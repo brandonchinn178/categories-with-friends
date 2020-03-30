@@ -7,9 +7,8 @@ class PlayerList {
   String _host;
   String get host => _host;
 
-  PlayerList(String json) {
-    final object = jsonDecode(json);
-    _players = object['players'];
+  PlayerList(Map<String, dynamic> object) {
+    _players = new List<String>.from(object['players']);
     _host = object['host'];
   }
 }
@@ -27,9 +26,8 @@ class StartRound {
   String _endTime;
   String get endTime => _endTime;
 
-  StartRound(String json) {
-    final object = jsonDecode(json);
-    _categories = object['categories'];
+  StartRound(Map<String, dynamic> object) {
+    _categories = new List<String>.from(object['categories']);
     _round = object['round_num'];
     _letter = object['letter'];
     // TODO: Parse end_time.
@@ -47,8 +45,7 @@ class StartValidation {
   Map<String, Map<String, String>> get playerToCategoryToAnswers =>
       _playerToCategoryToAnswers;
 
-  StartValidation(String json) {
-    final object = jsonDecode(json);
+  StartValidation(Map<String, dynamic> object) {
     _playerToCategoryToAnswers = object['answers'];
   }
 
@@ -79,8 +76,7 @@ class EndRound {
   bool _nextRound;
   bool get nextRound => _nextRound;
 
-  EndRound(String json) {
-    final object = jsonDecode(json);
+  EndRound(Map<String, dynamic> object) {
     // TODO: Parse the Answers might take more time.
     _playerToCategoryToAnswers = object['answers'];
     _playerToScore = object['scores'];

@@ -30,6 +30,7 @@ import Network.WebSockets
 import Scattergories.Errors as X
 import Scattergories.Events as X
 import Scattergories.Game as X
+import Scattergories.Logging (debugT)
 import Scattergories.Messages as X
 
 data ActiveGameState status = ActiveGameState
@@ -52,8 +53,11 @@ servePlayer :: MVar ActiveGame -> PlayerName -> Connection -> IO ()
 servePlayer activeGameVar playerName playerConn = do
   modifyMVar_ activeGameVar $ setupPlayer playerName playerConn
 
-  withPingThread playerConn pingDelay postPing $ runLoop $
-    receiveJSONData playerConn >>= \case
+  withPingThread playerConn pingDelay postPing $ runLoop $ do
+    event <- receiveJSONData playerConn
+    debugT $ "Player " ++ show playerName ++ " sent: " ++ show event
+
+    case event of
       StartRoundEvent ->
         handleEventOnlyHost startGameRound
       SubmitAnswersEvent playerAnswers ->
@@ -212,6 +216,7 @@ sendJSONData :: ToJSON a => Connection -> a -> IO ()
 sendJSONData conn = sendTextData conn . encode
 
 sendToAll :: ActiveGameState status -> Message -> IO ()
-sendToAll ActiveGameState{playerConns} message =
+sendToAll ActiveGameState{playerConns} message = do
+  debugT $ "Sending message to all players: " ++ show message
   forM_ (Map.elems playerConns) $ \conn ->
     sendJSONData conn message
