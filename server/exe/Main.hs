@@ -24,6 +24,7 @@ import WaiAppStatic.Types (StaticSettings(..))
 #endif
 
 import Scattergories (ActiveGame, PlayerName, initGameWithHost, servePlayer)
+import Scattergories.Logging (debugT)
 
 type API =
        Capture "gameId" Text :> Capture "playerId" PlayerName :> WebSocket
@@ -53,6 +54,7 @@ type Platform = Map Text (MVar ActiveGame)
 
 serveGame :: MVar Platform -> Text -> PlayerName -> Connection -> Handler ()
 serveGame platformVar gameId playerName playerConn = liftIO $ do
+  debugT $ "Got connection from " ++ show playerName ++ " (game: " ++ show gameId ++ ")"
   activeGameVar <- loadOrCreateGame platformVar gameId playerName
   servePlayer activeGameVar playerName playerConn
 
@@ -88,5 +90,3 @@ type StaticAPI = EmptyAPI
 serverStaticAPI :: Server StaticAPI
 serverStaticAPI = emptyServer
 #endif
-
-
