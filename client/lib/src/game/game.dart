@@ -36,6 +36,18 @@ class GameComponent implements OnActivate {
   List<String> _players = [];
   List<String> get players => _players;
 
+  Map<String, Map<String, String>> _playerToCategoryToAnswers = {};
+  Map<String, Map<String, String>> get playerToCategoryToAnswers =>
+      _playerToCategoryToAnswers;
+
+  Map<String, Map<String, String>> _categoryToPlayerToAnswers = {};
+  Map<String, Map<String, String>> get categoryToPlayerToAnswers =>
+      _categoryToPlayerToAnswers;
+
+  Map<String, Map<String, bool>> _playerToCategoryToValid = {};
+  Map<String, Map<String, bool>> get playerToCategoryToValid =>
+      _playerToCategoryToValid;
+
   int _round = 0;
   int get round => _round;
 
@@ -94,7 +106,26 @@ class GameComponent implements OnActivate {
     _phase = Phase.inRound;
   }
 
-  void _startValidation(StartValidation value) {}
+  void _startValidation(StartValidation value) {
+    _playerToCategoryToAnswers = value.playerToCategoryToAnswers;
+
+    _categoryToPlayerToAnswers =
+        Map.fromIterable(_categories, value: (_) => <String, String>{});
+
+    _playerToCategoryToValid = {};
+
+    for (final player in players) {
+      final categoryToAnswers = _playerToCategoryToAnswers[player];
+      for (final category in categories) {
+        _categoryToPlayerToAnswers[category][player] =
+            categoryToAnswers[category];
+
+        // Initialize all validity to true.
+        _playerToCategoryToValid[player] ??= {};
+        _playerToCategoryToValid[player][category] = true;
+      }
+    }
+  }
 
   void _endRound(EndRound value) {}
   void _endGame(EndGame value) {}
@@ -103,4 +134,8 @@ class GameComponent implements OnActivate {
   void startGame() => _apiClient.sendRequest(StartRound.request());
   void submitAnswers() =>
       _apiClient.sendRequest(StartValidation.request(categoryToAnswer));
+
+  void submitValidation() {
+    _apiClient.sendRequest(EndRound.request(playerToCategoryToValid));
+  }
 }

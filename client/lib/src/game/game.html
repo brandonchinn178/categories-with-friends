@@ -23,3 +23,27 @@ Share this link with other people: <a [href]="gameHomeUrl">{{gameHomeUrl}}</a>
   <!-- TODO: Add a timer that triggers submitAnswers -->
   <material-button (trigger)="submitAnswers">Submit</material-button>
 </div>
+
+<div *ngIf="phase == Phase.postRound">
+  <div class="title">Round {{round}}</div>
+  <div class="description">The letter is {{letter}}</div>
+  <div class="description">
+    Share your answers and discuss which ones should not count. Only the host can mark answers as invalid.
+  </div>
+
+  <div *ngFor="let category of categories">
+    <span class="category">Category: {{category}}</span>
+    <ul class="answers">
+      <ng-container *ngFor="let player of players">
+        <li>{{player}}: {{categoryToPlayerToAnswers[category][player]}}</li>
+          <!-- Add checkbox where host can mark words -->
+      </ng-container>
+    </ul>
+  </div>
+  <!-- TODO: Add a timer that triggers submitAnswers -->
+  <material-button (trigger)="submitValidation"
+                   [disabled]="!isHost">
+    Submit
+  </material-button>
+</div>
+
