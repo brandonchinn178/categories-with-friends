@@ -4,7 +4,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RecordWildCards #-}
 
 module Scattergories
   ( ActiveGame
@@ -94,21 +93,30 @@ servePlayer activeGameVar playerName playerConn = do
 -- | If the game hasn't started yet, add the given player to the game and notify everyone of the
 -- new arrival.
 setupPlayer :: PlayerName -> Connection -> ActiveGame -> IO ActiveGame
-setupPlayer playerName playerConn (ActiveGame activeGame@ActiveGameState{..}) = do
+setupPlayer playerName playerConn (ActiveGame activeGame) = do
   when isPlayerAlreadyConnected $ throwCannotJoin "you're already in the game"
 
+  let ActiveGameState{game} = activeGame
   case getStatus game of
-    SGameLoading -> do
+    SGameLoading -> addPlayerToGame game
+    SGameDone -> throwCannotJoin "game is over"
+    SGameInProgress -> refreshPlayerState game
+  where
+    isPlayerAlreadyConnected = playerName `Map.member` playerConns activeGame
+    throwCannotJoin = throwIO . CannotJoinGameError
+
+    addPlayerToGame game = do
       let updatedGame = initPlayer playerName game
           updatedActiveGame = activeGame
             { game = updatedGame
-            , playerConns = Map.insert playerName playerConn playerConns
+            , playerConns = Map.insert playerName playerConn $ playerConns activeGame
             }
       sendToAll updatedActiveGame $
         RefreshPlayerListMessage (getHost updatedGame) (getPlayers updatedGame)
       return $ ActiveGame updatedActiveGame
-    SGameDone -> throwCannotJoin "game is over"
-    SGameInProgress -> do
+
+    refreshPlayerState game = do
+      let isPlayerInGroup = playerName `elem` getPlayers game
       unless isPlayerInGroup $ throwCannotJoin "game already started without you"
 
       let message = fromCurrRound game $ \gameRound ->
@@ -119,10 +127,6 @@ setupPlayer playerName playerConn (ActiveGame activeGame@ActiveGameState{..}) = 
       sendJSONData playerConn (message :: Message)
 
       return $ ActiveGame activeGame
-  where
-    isPlayerAlreadyConnected = playerName `Map.member` playerConns
-    isPlayerInGroup = playerName `elem` getPlayers game
-    throwCannotJoin = throwIO . CannotJoinGameError
 
 -- | Start a new round in the game.
 startGameRound :: ActiveGame -> IO ActiveGame
