@@ -4,9 +4,6 @@ import 'root/root.template.dart';
 import 'game/game_home.template.dart';
 import 'game/game.template.dart';
 import 'not_found_component.template.dart' as not_found_template;
-import 'route_paths.dart';
-
-export 'route_paths.dart';
 
 import 'package:angular_router/angular_router.dart';
 
