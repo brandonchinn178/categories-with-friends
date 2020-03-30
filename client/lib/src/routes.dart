@@ -12,7 +12,7 @@ const playerParam = 'player';
 
 class RoutePaths {
   static final root = RoutePath(path: '/');
-  static final gameHome = RoutePath(path: ':$gameIdParam');
+  static final gameHome = RoutePath(path: 'game/:$gameIdParam');
   static final game = RoutePath(path: '${gameHome.path}/:$playerParam');
 
   static String getGameId(Map<String, String> parameters) =>
