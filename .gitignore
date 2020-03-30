@@ -10,3 +10,4 @@
 /client/.dart_tool
 
 *.swp
+.*.swp
