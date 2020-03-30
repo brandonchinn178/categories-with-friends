@@ -43,14 +43,6 @@ data ActiveGameState status = ActiveGameState
 data ActiveGame where
   ActiveGame :: forall status. ActiveGameState status -> ActiveGame
 
--- | Update the ActiveGameState inside an ActiveGame.
---
--- Unfortunately, it would be nice to have the function return
--- IO (forall newStatus. ActiveGameState newStatus), but GHC doesn't support impredicative types
--- yet, so we have to force the function to wrap ActiveGame explicitly.
-updateActiveGame :: MVar ActiveGame -> (forall oldStatus. ActiveGameState oldStatus -> IO ActiveGame) -> IO ()
-updateActiveGame activeGameVar f = modifyMVar_ activeGameVar $ \(ActiveGame activeGame) -> f activeGame
-
 initGameWithHost :: PlayerName -> ActiveGame
 initGameWithHost host = ActiveGame $
   ActiveGameState
@@ -60,18 +52,18 @@ initGameWithHost host = ActiveGame $
 
 servePlayer :: MVar ActiveGame -> PlayerName -> Connection -> IO ()
 servePlayer activeGameVar playerName playerConn = do
-  updateGame $ resolve . setupPlayer playerName playerConn
+  modifyMVar_ activeGameVar $ setupPlayer playerName playerConn
 
   withPingThread playerConn pingDelay postPing $ runLoop $
     receiveJSONData playerConn >>= \case
       StartRoundEvent ->
-        updateGameOnlyHost $ resolve . startGameRound
+        handleEventOnlyHost startGameRound
       SubmitAnswersEvent playerAnswers ->
-        updateGame $ resolve . registerAnswers playerName playerAnswers
+        handleEvent $ registerAnswers playerName playerAnswers
       EndValidationEvent{} ->
         undefined
       EndGameEvent ->
-        updateGameOnlyHost $ resolve . endGame
+        handleEventOnlyHost endGame
   where
     pingDelay = 30 -- seconds
     postPing = return ()
@@ -82,7 +74,7 @@ servePlayer activeGameVar playerName playerConn = do
       Left e ->
         case fromException e of
           Just CloseRequest{} ->
-            updateGame $ \activeGame -> pure $ ActiveGame
+            modifyMVar_ activeGameVar $ \(ActiveGame activeGame) -> pure $ ActiveGame
               activeGame
                 { playerConns = Map.delete playerName (playerConns activeGame)
                 }
@@ -92,23 +84,18 @@ servePlayer activeGameVar playerName playerConn = do
             runLoop m
       Right _ -> runLoop m
 
-    updateGameOnlyHost :: (forall oldStatus. ActiveGameState oldStatus -> IO ActiveGame) -> IO ()
-    updateGameOnlyHost f = updateGame $ \activeGame -> do
-      unless (getHost (game activeGame) == playerName) $ throwIO NotHostError
+    handleEventOnlyHost f = handleEvent $ \activeGame@(ActiveGame ActiveGameState{game}) -> do
+      unless (getHost game == playerName) $ throwIO NotHostError
       f activeGame
 
-    updateGame :: (forall oldStatus. ActiveGameState oldStatus -> IO ActiveGame) -> IO ()
-    updateGame = updateActiveGame activeGameVar
-
-    resolve :: IO (ActiveGameState newStatus) -> IO ActiveGame
-    resolve = fmap ActiveGame
+    handleEvent = modifyMVar_ activeGameVar
 
 {- Game mechanics -}
 
 -- | If the game hasn't started yet, add the given player to the game and notify everyone of the
 -- new arrival.
-setupPlayer :: PlayerName -> Connection -> ActiveGameState status -> IO (ActiveGameState status)
-setupPlayer playerName playerConn activeGame@ActiveGameState{..} = do
+setupPlayer :: PlayerName -> Connection -> ActiveGame -> IO ActiveGame
+setupPlayer playerName playerConn (ActiveGame activeGame@ActiveGameState{..}) = do
   when isPlayerAlreadyConnected $
     throwIO $ CannotJoinGameError "you're already in the game"
 
@@ -121,38 +108,40 @@ setupPlayer playerName playerConn activeGame@ActiveGameState{..} = do
             }
       sendToAll updatedActiveGame $
         RefreshPlayerListMessage (getHost updatedGame) (Set.toList $ getPlayers updatedGame)
-      return updatedActiveGame
+      return $ ActiveGame updatedActiveGame
     SGameDone -> throwIO $ CannotJoinGameError "game is over"
     SGameInProgress -> do
       unless isPlayerInGroup $
         throwIO $ CannotJoinGameError "game already started without you"
 
       sendJSONData playerConn $ StartRoundMessage $ getCurrRound game
-      return activeGame
+      return $ ActiveGame activeGame
   where
     isPlayerAlreadyConnected = playerName `Map.member` playerConns
     isPlayerInGroup = playerName `Set.member` getPlayers game
 
 -- | Start a new round in the game.
-startGameRound :: ActiveGameState status -> IO (ActiveGameState 'GameInProgress)
-startGameRound activeGame@ActiveGameState{game} = do
-  (game', newRound) <- case getStatus game of
-    SGameDone -> throwUnexpectedEvent "game is done"
-    SGameLoading -> startRound game
-    SGameInProgress -> do
-      when (isRoundDone $ getCurrRound game) $ throwUnexpectedEvent "round isn't over"
-      startRound game
-
+startGameRound :: ActiveGame -> IO ActiveGame
+startGameRound (ActiveGame activeGame@ActiveGameState{game}) = do
+  (game', newRound) <- startRound'
   let activeGame' = activeGame { game = game' }
   sendToAll activeGame' $ StartRoundMessage newRound
-  return activeGame'
+  return $ ActiveGame activeGame'
   where
+    startRound' :: IO (Game 'GameInProgress, GameRound)
+    startRound' = case getStatus game of
+      SGameDone -> throwUnexpectedEvent "game is done"
+      SGameLoading -> startRound game
+      SGameInProgress -> do
+        when (isRoundDone $ getCurrRound game) $ throwUnexpectedEvent "round isn't over"
+        startRound game
+
     throwUnexpectedEvent = throwIO . UnexpectedEventError "start_round"
 
 -- | Register the given player's answers. If this person was the last person to answer, send
 -- everyone the start_validation message.
-registerAnswers :: PlayerName -> Map Category Answer -> ActiveGameState status -> IO (ActiveGameState 'GameInProgress)
-registerAnswers playerName playerAnswers activeGame@ActiveGameState{game} =
+registerAnswers :: PlayerName -> Map Category Answer -> ActiveGame -> IO ActiveGame
+registerAnswers playerName playerAnswers (ActiveGame activeGame@ActiveGameState{game}) =
   case getStatus game of
     SGameLoading -> throwUnexpectedEvent "game hasn't started"
     SGameDone -> throwUnexpectedEvent "game is over"
@@ -164,16 +153,16 @@ registerAnswers playerName playerAnswers activeGame@ActiveGameState{game} =
         sendToAll updatedActiveGame $
           StartValidationMessage $ getAnswers (getCurrRound updatedGame)
 
-      pure updatedActiveGame
+      pure $ ActiveGame updatedActiveGame
   where
     throwUnexpectedEvent = throwIO . UnexpectedEventError "submit_answers"
 
 -- | End the game.
-endGame :: ActiveGameState status -> IO (ActiveGameState 'GameDone)
-endGame activeGame@ActiveGameState{game} = do
+endGame :: ActiveGame -> IO ActiveGame
+endGame (ActiveGame activeGame@ActiveGameState{game}) = do
   let activeGame' = activeGame { game = markGameDone game }
   sendToAll activeGame' EndGameMessage
-  return activeGame'
+  return $ ActiveGame activeGame'
 
 {- WebSocket helpers -}
 
