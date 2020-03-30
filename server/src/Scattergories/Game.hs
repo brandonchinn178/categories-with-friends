@@ -34,11 +34,13 @@ module Scattergories.Game
   , startRound
   , lockAnswers
   , finalizeRound
+  , hasNextRound
     -- * Categories
   , Category
     -- * Answering phase
   , Answer
   , getAnswers
+  , getValidatedAnswers
   , addPlayerAnswers
   ) where
 
@@ -208,6 +210,11 @@ finalizeRound allRatings gameRound = gameRound
             $ Map.lookup category <=< Map.lookup playerName $ allRatings
       in (answer, Just isValid)
 
+hasNextRound :: GameRound status -> Bool
+hasNextRound = (< numRounds) . roundNum
+  where
+    numRounds = 3
+
 {- Categories -}
 
 type Category = Text
@@ -221,6 +228,11 @@ type Answer = Text
 
 getAnswers :: GameRound status -> Map PlayerName (Map Category Answer)
 getAnswers = fmap (fmap fst) . answers
+
+getValidatedAnswers :: GameRound 'RoundDone -> Map PlayerName (Map Category (Answer, Bool))
+getValidatedAnswers = fmap (fmap (fmap getRating)) . answers
+  where
+    getRating = fromMaybe $ error "invariant violated: rating is Nothing when round is done"
 
 addPlayerAnswers :: PlayerName -> Map Category Answer -> GameRound 'RoundBeingAnswered -> GameRound 'RoundBeingAnswered
 addPlayerAnswers playerName playerAnswers gameRound = gameRound

@@ -58,8 +58,8 @@ servePlayer activeGameVar playerName playerConn = do
         handleEventOnlyHost startGameRound
       SubmitAnswersEvent playerAnswers ->
         handleEvent $ registerAnswers playerName playerAnswers
-      EndValidationEvent{} ->
-        undefined
+      EndValidationEvent ratings ->
+        handleEventOnlyHost $ registerRatings ratings
       EndGameEvent ->
         handleEventOnlyHost endGame
   where
@@ -173,6 +173,28 @@ registerAnswers playerName playerAnswers (ActiveGame activeGame@ActiveGameState{
               resolveRound updatedRound
   where
     throwUnexpectedEvent = throwIO . UnexpectedEventError "submit_answers"
+
+-- | Register the given answer ratings and send the results to everyone.
+registerRatings :: Map PlayerName (Map Category Bool) -> ActiveGame -> IO ActiveGame
+registerRatings ratings (ActiveGame activeGame@ActiveGameState{game}) =
+  case getStatus game of
+    SGameLoading -> throwUnexpectedEvent "game hasn't started"
+    SGameDone -> throwUnexpectedEvent "game is over"
+    SGameInProgress -> fromCurrRound game $ \gameRound ->
+      case getRoundStatus gameRound of
+        SRoundBeingAnswered -> throwUnexpectedEvent "players are still answering"
+        SRoundDone -> throwUnexpectedEvent "round is over"
+        SRoundBeingValidated -> do
+          let updatedRound = finalizeRound ratings gameRound
+              updatedGame = setCurrRound updatedRound game
+              updatedActiveGame = activeGame { game = updatedGame }
+
+          sendToAll updatedActiveGame $
+            EndRoundMessage (getValidatedAnswers updatedRound) (getScores updatedGame) (hasNextRound updatedRound)
+
+          return $ ActiveGame updatedActiveGame
+  where
+    throwUnexpectedEvent = throwIO . UnexpectedEventError "end_validation"
 
 -- | End the game.
 endGame :: ActiveGame -> IO ActiveGame

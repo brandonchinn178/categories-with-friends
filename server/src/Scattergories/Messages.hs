@@ -21,6 +21,8 @@ data Message
     -- ^ send information to start a round
   | StartValidationMessage (Map PlayerName (Map Category Answer))
     -- ^ send everyone's answers so the host can validate
+  | EndRoundMessage (Map PlayerName (Map Category (Answer, Bool))) (Map PlayerName Int) Bool
+    -- ^ send the results of the game so far
   | EndGameMessage
     -- ^ tell everyone to end their games
 
@@ -28,6 +30,7 @@ instance Show Message where
   show RefreshPlayerListMessage{} = "refresh_player_list"
   show StartRoundMessage{} = "start_round"
   show StartValidationMessage{} = "start_validation"
+  show EndRoundMessage{} = "end_round"
   show EndGameMessage = "end_game"
 
 instance ToJSON Message where
@@ -48,6 +51,11 @@ instance ToJSON Message where
           ]
         StartValidationMessage answers ->
           [ "answers" .= answers
+          ]
+        EndRoundMessage answers scores nextRound ->
+          [ "answers" .= answers
+          , "scores" .= scores
+          , "next_round" .= nextRound
           ]
         EndGameMessage -> []
 
