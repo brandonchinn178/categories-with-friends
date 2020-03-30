@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:html';
 import 'dart:async';
 import 'package:angular/di.dart';
 import 'package:quiver/strings.dart';
@@ -24,10 +25,20 @@ class ApiClient {
   final _onError = StreamController<String>.broadcast();
   Stream<String> get onError => _onError.stream;
 
-  // TODO: Setup web socket if not yet setup..
-  void init(String gameId, String player) {}
+  WebSocket _webSocket;
 
-  void sendRequest(String json) {}
+  void init(String gameId, String player) {
+    _webSocket = WebSocket('ws:///${gameId}/${player}');
+    _webSocket.onMessage.listen((MessageEvent e) => _routeResponse(e.data));
+  }
+
+  void sendRequest(String json) {
+    if (_webSocket != null && _webSocket.readyState == WebSocket.OPEN) {
+      _webSocket.send(json);
+    } else {
+      print('WebSocket not connected, message $json not sent');
+    }
+  }
 
   void _routeResponse(String json) {
     final object = jsonDecode(json);
