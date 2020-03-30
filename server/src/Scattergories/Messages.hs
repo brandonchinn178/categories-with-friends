@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -10,12 +11,13 @@ import Data.Aeson (ToJSON(..), object, (.=))
 import Data.Map.Strict (Map)
 import Data.Time (defaultTimeLocale, formatTime, iso8601DateFormat)
 
-import Scattergories.Game (Answer, Category, GameRound(..), PlayerName)
+import Scattergories.Game
+    (Answer, Category, GameRound(..), GameRoundStatus(..), PlayerName)
 
 data Message
   = RefreshPlayerListMessage PlayerName [PlayerName]
     -- ^ send the current host and player list to everyone
-  | StartRoundMessage GameRound
+  | StartRoundMessage (GameRound 'RoundBeingAnswered)
     -- ^ send information to start a round
   | StartValidationMessage (Map PlayerName (Map Category Answer))
     -- ^ send everyone's answers so the host can validate

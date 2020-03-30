@@ -1,7 +1,9 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -10,6 +12,7 @@
 module Scattergories.Game
   ( Game
   , GameRound(GameRound, roundNum, categories, letter, endTime)
+  , SomeGameRound(..)
   , createGame
   , getScores
     -- * Players
@@ -22,11 +25,14 @@ module Scattergories.Game
   , SGameStatus(..)
   , getStatus
   , markGameDone
+  , GameRoundStatus(..)
+  , SGameRoundStatus(..)
+  , getRoundStatus
     -- * Game round logistics + operations
-  , isRoundDone
-  , getCurrRound
-  , updateCurrRound
+  , fromCurrRound
+  , setCurrRound
   , startRound
+  , lockAnswers
   , finalizeRound
     -- * Categories
   , Category
@@ -34,7 +40,6 @@ module Scattergories.Game
   , Answer
   , getAnswers
   , addPlayerAnswers
-  , haveAllPlayersAnswered
   ) where
 
 import Control.Monad ((<=<))
@@ -42,7 +47,7 @@ import Control.Monad.Random (getRandomR)
 import Data.FileEmbed (embedStringFile)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
-import Data.Maybe (fromMaybe, isJust)
+import Data.Maybe (fromMaybe)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
@@ -54,19 +59,26 @@ data Game (status :: GameStatus) = Game
   { host    :: PlayerName
   , players :: Set PlayerName
   , status  :: SGameStatus status
-  , rounds  :: [GameRound]
+  , rounds  :: [SomeGameRound]
     -- ^ Invariant: non-empty if status is not GameLoading
   } deriving (Show)
 
-data GameRound = GameRound
+data GameRound (status :: GameRoundStatus) = GameRound
   { roundNum   :: Int
   , categories :: [Category]
   , letter     :: Char
+  , status     :: SGameRoundStatus status
   , answers    :: Map PlayerName (Map Category (Answer, Maybe Bool))
-    -- ^ Invariant: Either all ratings are Nothing, or Just
+    -- ^ Invariant: if status is RoundDone, all ratings are Just, otherwise they're all Nothing
   , endTime    :: UTCTime
     -- ^ End of the answering round
   } deriving (Show)
+
+-- | A GameRound that forgot what its status is.
+data SomeGameRound where
+  SomeGameRound :: forall status. GameRound status -> SomeGameRound
+
+deriving instance Show SomeGameRound
 
 createGame :: PlayerName -> Game 'GameLoading
 createGame host = Game
@@ -79,7 +91,7 @@ createGame host = Game
 getScores :: Game status -> Map PlayerName Int
 getScores = Map.unionsWith (+) . map scoreRound . rounds
   where
-    scoreRound = fmap scorePlayer . answers
+    scoreRound (SomeGameRound gameRound) = scorePlayer <$> answers gameRound
     scorePlayer = Map.size . Map.filter ((== Just True) . snd)
 
 {- Players -}
@@ -113,36 +125,51 @@ getStatus = status
 markGameDone :: Game status -> Game 'GameDone
 markGameDone game = game { status = SGameDone }
 
+data GameRoundStatus = RoundBeingAnswered | RoundBeingValidated | RoundDone
+
+-- | A witness that a GameRound is in one of the above statuses.
+data SGameRoundStatus (status :: GameRoundStatus) where
+  SRoundBeingAnswered :: SGameRoundStatus 'RoundBeingAnswered
+  SRoundBeingValidated :: SGameRoundStatus 'RoundBeingValidated
+  SRoundDone :: SGameRoundStatus 'RoundDone
+
+deriving instance Show (SGameRoundStatus status)
+
+getRoundStatus :: GameRound status -> SGameRoundStatus status
+getRoundStatus = status
+
 {- Game round logistics + operations -}
 
-isRoundDone :: GameRound -> Bool
-isRoundDone = all (all isAnswerRated) . answers
+fromCurrRound :: Game 'GameInProgress -> (forall status. GameRound status -> x) -> x
+fromCurrRound game f = fromGameRound $ last $ rounds game
   where
-    isAnswerRated = isJust . snd
+    fromGameRound (SomeGameRound gameRound) = f gameRound
 
-getCurrRound :: Game 'GameInProgress -> GameRound
-getCurrRound = last . rounds
-
-updateCurrRound :: Game 'GameInProgress -> (GameRound -> GameRound) -> Game 'GameInProgress
-updateCurrRound game f = game { rounds = modifyLast (rounds game) }
+setCurrRound :: GameRound status -> Game 'GameInProgress -> Game 'GameInProgress
+setCurrRound gameRound game = game { rounds = replaceLast (rounds game) }
   where
-    modifyLast [] = error "modifyLast: empty list"
-    modifyLast [x] = [f x]
-    modifyLast (x:xs) = x : modifyLast xs
+    replaceLast [] = error "setCurrRound: empty game rounds"
+    replaceLast [_] = [SomeGameRound gameRound]
+    replaceLast (x:xs) = x : replaceLast xs
 
 class CanBeStarted (status :: GameStatus) where
-  addRound :: GameRound -> Game status -> Game 'GameInProgress
+  addRound :: GameRound 'RoundBeingAnswered -> Game status -> Game 'GameInProgress
   getNextRoundNum :: Game status -> Int
 
 instance CanBeStarted 'GameLoading where
-  addRound gameRound Game{..} = Game{ rounds = [gameRound], status = SGameInProgress, .. }
+  addRound gameRound game = game
+    { rounds = [SomeGameRound gameRound]
+    , status = SGameInProgress
+    }
   getNextRoundNum = const 0
 
 instance CanBeStarted 'GameInProgress where
-  addRound gameRound game = game { rounds = rounds game ++ [gameRound] }
-  getNextRoundNum = (+ 1) . roundNum . getCurrRound
+  addRound gameRound game = game
+    { rounds = rounds game ++ [SomeGameRound gameRound]
+    }
+  getNextRoundNum game = fromCurrRound game ((+ 1) . roundNum)
 
-startRound :: CanBeStarted status => Game status -> IO (Game 'GameInProgress, GameRound)
+startRound :: CanBeStarted status => Game status -> IO (Game 'GameInProgress, GameRound 'RoundBeingAnswered)
 startRound game = do
   categories <- take numCategories <$> shuffleM allCategories
   letter <- getRandomR ('A', 'Z')
@@ -150,6 +177,7 @@ startRound game = do
   let gameRound = GameRound
         { roundNum = getNextRoundNum game
         , answers = Map.empty
+        , status = SRoundBeingAnswered
         , ..
         }
 
@@ -158,13 +186,17 @@ startRound game = do
     numCategories = 12
     roundDuration = 3 * 60 -- 3 minutes
 
+lockAnswers :: GameRound 'RoundBeingAnswered -> GameRound 'RoundBeingValidated
+lockAnswers gameRound = gameRound { status = SRoundBeingValidated }
+
 -- | Register the given ratings, which determine whether a player's answer is valid.
 --
 -- Invariant: for every player/category pair in a game round, the player/category pair MUST exist
 -- in the ratings map.
-finalizeRound :: Map PlayerName (Map Category Bool) -> GameRound -> GameRound
+finalizeRound :: Map PlayerName (Map Category Bool) -> GameRound 'RoundBeingValidated -> GameRound 'RoundDone
 finalizeRound allRatings gameRound = gameRound
   { answers = Map.mapWithKey registerRatings $ answers gameRound
+  , status = SRoundDone
   }
   where
     registerRatings playerName = Map.mapWithKey (registerRating playerName)
@@ -185,18 +217,12 @@ allCategories = Text.lines $(embedStringFile "../data/categories.txt")
 
 type Answer = Text
 
-getAnswers :: GameRound -> Map PlayerName (Map Category Answer)
+getAnswers :: GameRound status -> Map PlayerName (Map Category Answer)
 getAnswers = fmap (fmap fst) . answers
 
-addPlayerAnswers :: PlayerName -> Map Category Answer -> GameRound -> GameRound
+addPlayerAnswers :: PlayerName -> Map Category Answer -> GameRound 'RoundBeingAnswered -> GameRound 'RoundBeingAnswered
 addPlayerAnswers playerName playerAnswers gameRound = gameRound
   { answers = Map.insert playerName (initRatings playerAnswers) (answers gameRound)
   }
   where
     initRatings = fmap (, Nothing)
-
--- | True if all players have submitted their answers.
-haveAllPlayersAnswered :: Game 'GameInProgress -> Bool
-haveAllPlayersAnswered game = all (`Map.member` answers) $ getPlayers game
-  where
-    GameRound{answers} = getCurrRound game

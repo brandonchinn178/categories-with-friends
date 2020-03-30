@@ -113,7 +113,13 @@ setupPlayer playerName playerConn (ActiveGame activeGame@ActiveGameState{..}) = 
       unless isPlayerInGroup $
         throwIO $ CannotJoinGameError "game already started without you"
 
-      sendJSONData playerConn $ StartRoundMessage $ getCurrRound game
+      let message = fromCurrRound game $ \gameRound ->
+            case getRoundStatus gameRound of
+              SRoundBeingAnswered -> StartRoundMessage gameRound
+              SRoundBeingValidated -> StartValidationMessage $ getAnswers gameRound
+              SRoundDone -> undefined -- TODO: send EndValidationMessage
+      sendJSONData playerConn (message :: Message)
+
       return $ ActiveGame activeGame
   where
     isPlayerAlreadyConnected = playerName `Map.member` playerConns
@@ -127,13 +133,14 @@ startGameRound (ActiveGame activeGame@ActiveGameState{game}) = do
   sendToAll activeGame' $ StartRoundMessage newRound
   return $ ActiveGame activeGame'
   where
-    startRound' :: IO (Game 'GameInProgress, GameRound)
+    startRound' :: IO (Game 'GameInProgress, GameRound 'RoundBeingAnswered)
     startRound' = case getStatus game of
       SGameDone -> throwUnexpectedEvent "game is done"
       SGameLoading -> startRound game
-      SGameInProgress -> do
-        when (isRoundDone $ getCurrRound game) $ throwUnexpectedEvent "round isn't over"
-        startRound game
+      SGameInProgress -> fromCurrRound game $ \gameRound ->
+        case getRoundStatus gameRound of
+          SRoundDone -> startRound game
+          _ -> throwUnexpectedEvent "round isn't over"
 
     throwUnexpectedEvent = throwIO . UnexpectedEventError "start_round"
 
@@ -144,15 +151,23 @@ registerAnswers playerName playerAnswers (ActiveGame activeGame@ActiveGameState{
   case getStatus game of
     SGameLoading -> throwUnexpectedEvent "game hasn't started"
     SGameDone -> throwUnexpectedEvent "game is over"
-    SGameInProgress -> do
-      let updatedGame = updateCurrRound game $ addPlayerAnswers playerName playerAnswers
-          updatedActiveGame = activeGame { game = updatedGame }
+    SGameInProgress -> fromCurrRound game $ \gameRound ->
+      case getRoundStatus gameRound of
+        SRoundBeingValidated -> throwUnexpectedEvent "answers are locked for the round"
+        SRoundDone -> throwUnexpectedEvent "round is over"
+        SRoundBeingAnswered -> do
+          let updatedRound = addPlayerAnswers playerName playerAnswers gameRound
+              updatedAnswers = getAnswers updatedRound
+              resolveRound :: GameRound status -> IO ActiveGame
+              resolveRound updatedRound' = return $ ActiveGame $ activeGame { game = setCurrRound updatedRound' game }
 
-      when (haveAllPlayersAnswered game) $
-        sendToAll updatedActiveGame $
-          StartValidationMessage $ getAnswers (getCurrRound updatedGame)
-
-      pure $ ActiveGame updatedActiveGame
+          -- check if all players have answers submitted
+          if all (`Map.member` updatedAnswers) $ getPlayers game
+            then do
+              sendToAll activeGame $ StartValidationMessage updatedAnswers
+              resolveRound $ lockAnswers updatedRound
+            else
+              resolveRound updatedRound
   where
     throwUnexpectedEvent = throwIO . UnexpectedEventError "submit_answers"
 
