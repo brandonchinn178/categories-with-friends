@@ -47,7 +47,7 @@ instance ToJSON Message where
           [ "round_num" .= roundNum
           , "categories" .= categories
           , "letter" .= letter
-          , "end_time" .= formatISO8601 endTime
+          , "end_time" .= formatISO8601 answerDeadline
           ]
         StartValidationMessage answers ->
           [ "answers" .= answers

@@ -11,7 +11,7 @@
 
 module Scattergories.Game
   ( Game
-  , GameRound(GameRound, roundNum, categories, letter, endTime)
+  , GameRound(GameRound, roundNum, categories, letter, answerDeadline)
   , SomeGameRound(..)
   , createGame
   , getScores
@@ -67,14 +67,13 @@ data Game (status :: GameStatus) = Game
   } deriving (Show)
 
 data GameRound (status :: GameRoundStatus) = GameRound
-  { roundNum   :: Int
-  , categories :: [Category]
-  , letter     :: Char
-  , status     :: SGameRoundStatus status
-  , answers    :: Map PlayerName (Map Category (Answer, Maybe Bool))
+  { roundNum       :: Int
+  , categories     :: [Category]
+  , letter         :: Char
+  , status         :: SGameRoundStatus status
+  , answers        :: Map PlayerName (Map Category (Answer, Maybe Bool))
     -- ^ Invariant: if status is RoundDone, all ratings are Just, otherwise they're all Nothing
-  , endTime    :: UTCTime
-    -- ^ End of the answering round
+  , answerDeadline :: UTCTime
   } deriving (Show)
 
 -- | A GameRound that forgot what its status is.
@@ -177,7 +176,7 @@ startRound :: CanBeStarted status => Game status -> IO (Game 'GameInProgress, Ga
 startRound game = do
   categories <- take numCategories <$> shuffleM allCategories
   letter <- getRandomR ('A', 'Z')
-  endTime <- addUTCTime roundDuration <$> getCurrentTime
+  answerDeadline <- addUTCTime roundDuration <$> getCurrentTime
   let gameRound = GameRound
         { roundNum = getNextRoundNum game
         , answers = Map.empty
