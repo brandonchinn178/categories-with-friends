@@ -9,7 +9,8 @@ import 'api_classes.dart';
 // when using dartdevc, but dartdevc doesn't support setting environment
 // variables
 // https://stackoverflow.com/a/51893647
-final apiHost = const String.fromEnvironment('apiHost', defaultValue: 'localhost:8000');
+final apiHost =
+    const String.fromEnvironment('apiHost', defaultValue: 'localhost:8000');
 
 @Injectable()
 class ApiClient {
@@ -34,7 +35,8 @@ class ApiClient {
   WebSocket _webSocket;
 
   void init(String gameId, String player) {
-    _webSocket = WebSocket('ws://${apiHost}/${gameId}/${player}');
+    // TODO: Use wss
+    _webSocket = WebSocket('ws://${apiHost}/game/${gameId}/${player}');
     _webSocket.onMessage.listen((MessageEvent e) => _routeResponse(e.data));
   }
 

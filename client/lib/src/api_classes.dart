@@ -46,7 +46,7 @@ class StartValidation {
       _playerToCategoryToAnswers;
 
   StartValidation(Map<String, dynamic> object) {
-    _playerToCategoryToAnswers = object['answers'];
+    _playerToCategoryToAnswers = object.cast();
   }
 
   static String request(Map<String, String> categoryToAnswer) {
@@ -66,9 +66,9 @@ class Answer {
 }
 
 class EndRound {
-  Map<String, Map<String, Answer>> _playerToCategoryToAnswers;
-  Map<String, Map<String, Answer>> get playerToCategoryToAnswers =>
-      _playerToCategoryToAnswers;
+  Map<String, Map<String, Answer>> _playerToCategoryToGradedAnswers;
+  Map<String, Map<String, Answer>> get playerToCategoryToGradedAnswers =>
+      _playerToCategoryToGradedAnswers;
 
   Map<String, int> _playerToScore;
   Map<String, int> get playerToScore => _playerToScore;
@@ -78,7 +78,7 @@ class EndRound {
 
   EndRound(Map<String, dynamic> object) {
     // TODO: Parse the Answers might take more time.
-    _playerToCategoryToAnswers = object['answers'];
+    _playerToCategoryToGradedAnswers = object['answers'];
     _playerToScore = object['scores'];
     _nextRound = object['next_round'];
   }

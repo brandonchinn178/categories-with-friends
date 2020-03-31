@@ -8,7 +8,7 @@ import '../api_client.dart';
 import '../api_classes.dart';
 import '../routes.dart';
 
-enum Phase { lobby, inRound, postRound, endGame }
+enum Phase { lobby, inRound, validation, postRound, endGame }
 
 @Component(
   selector: 'game',
@@ -40,6 +40,9 @@ class GameComponent implements OnActivate {
   String _host = '';
   String get host => _host;
 
+  String _error = '';
+  String get error => _error;
+
   List<String> _players = [];
   List<String> get players => _players;
 
@@ -47,19 +50,29 @@ class GameComponent implements OnActivate {
   Map<String, Map<String, String>> get playerToCategoryToAnswers =>
       _playerToCategoryToAnswers;
 
-  Map<String, Map<String, String>> _categoryToPlayerToAnswers = {};
-  Map<String, Map<String, String>> get categoryToPlayerToAnswers =>
-      _categoryToPlayerToAnswers;
+  Map<String, Map<String, Answer>> _playerToCategoryToGradedAnswers = {};
+  Map<String, Map<String, Answer>> get playerToCategoryToGradedAnswers =>
+      _playerToCategoryToGradedAnswers;
 
   Map<String, Map<String, bool>> _playerToCategoryToValid = {};
   Map<String, Map<String, bool>> get playerToCategoryToValid =>
       _playerToCategoryToValid;
 
+  Map<String, int> _playerToScore = {};
+  Map<String, int> get playerToScore => _playerToScore;
+
   int _round = 0;
   int get round => _round;
 
+  /// True if a next round exists.
+  bool _nextRound = true;
+  bool get nextRound => _nextRound;
+
   List<String> _categories;
   List<String> get categories => _categories;
+
+  bool _submittedAnswers;
+  bool submittedAnswers = false;
 
   Map<String, String> _categoryToAnswer = {};
   Map<String, String> get categoryToAnswer => _categoryToAnswer;
@@ -110,37 +123,46 @@ class GameComponent implements OnActivate {
     _categoryToAnswer = Map.fromIterable(_categories, value: (_) => _letter);
 
     // TODO: Count down before starting.
+    _submittedAnswers = false;
     _phase = Phase.inRound;
   }
 
   void _startValidation(StartValidation value) {
     _playerToCategoryToAnswers = value.playerToCategoryToAnswers;
 
-    _categoryToPlayerToAnswers =
-        Map.fromIterable(_categories, value: (_) => <String, String>{});
-
     _playerToCategoryToValid = {};
 
     for (final player in players) {
-      final categoryToAnswers = _playerToCategoryToAnswers[player];
       for (final category in categories) {
-        _categoryToPlayerToAnswers[category][player] =
-            categoryToAnswers[category];
-
         // Initialize all validity to true.
         _playerToCategoryToValid[player] ??= {};
         _playerToCategoryToValid[player][category] = true;
       }
     }
+
+    _phase = Phase.validation;
   }
 
-  void _endRound(EndRound value) {}
-  void _endGame(EndGame value) {}
-  void _onError(String value) {}
+  void _endRound(EndRound value) {
+    _playerToCategoryToGradedAnswers = value.playerToCategoryToGradedAnswers;
+    _playerToScore = value.playerToScore;
+    _nextRound = value.nextRound;
+    _phase = Phase.postRound;
+  }
+
+  void _endGame(EndGame value) {
+    _phase = Phase.endGame;
+  }
+
+  void _onError(String value) {
+    _error = value;
+  }
 
   void startGame() => _apiClient.sendRequest(StartRound.request());
-  void submitAnswers() =>
-      _apiClient.sendRequest(StartValidation.request(categoryToAnswer));
+  void submitAnswers() {
+    _submittedAnswers = true;
+    _apiClient.sendRequest(StartValidation.request(categoryToAnswer));
+  }
 
   void submitValidation() {
     _apiClient.sendRequest(EndRound.request(playerToCategoryToValid));

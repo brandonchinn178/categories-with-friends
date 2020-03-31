@@ -1,5 +1,6 @@
 Share this link with other people: <a [href]="gameHomeUrl">{{gameHomeUrl}}</a>
 
+<!-- Wait for people -->
 <div *ngIf="phase == Phase.lobby">
   <div class="host">Host: {{host}}</div>
   Currently there are {{players.length}} players.
@@ -13,6 +14,7 @@ Share this link with other people: <a [href]="gameHomeUrl">{{gameHomeUrl}}</a>
   <material-button [disabled]="!isHost" (trigger)="startGame">Start game</material-button>
 </div>
 
+<!-- Play game, insert answers -->
 <div *ngIf="phase == Phase.inRound">
   <div class="title">Round {{round}}</div>
   <div class="description">The letter is {{letter}}</div>
@@ -24,7 +26,8 @@ Share this link with other people: <a [href]="gameHomeUrl">{{gameHomeUrl}}</a>
   <material-button (trigger)="submitAnswers">Submit</material-button>
 </div>
 
-<div *ngIf="phase == Phase.postRound">
+<!-- View everyone's answers and argue -->
+<div *ngIf="phase == Phase.validation">
   <div class="title">Round {{round}}</div>
   <div class="description">The letter is {{letter}}</div>
   <div class="description">
@@ -35,11 +38,13 @@ Share this link with other people: <a [href]="gameHomeUrl">{{gameHomeUrl}}</a>
     <span class="category">Category: {{category}}</span>
     <ul class="answers">
       <ng-container *ngFor="let player of players">
-        <li>{{player}}: {{categoryToPlayerToAnswers[category][player]}}</li>
-        <material-checkbox
-          [(ngModel)]="playerToCategoryToValid[player][category]"
-          [disabled]="!isHost">
-        </material-checkbox>
+        <li>
+          {{player}}: {{playerToCategoryToAnswers[player][category]}}
+          <material-checkbox
+            [(ngModel)]="playerToCategoryToValid[player][category]"
+            [disabled]="!isHost">
+          </material-checkbox>
+        </li>
       </ng-container>
     </ul>
   </div>
@@ -49,3 +54,37 @@ Share this link with other people: <a [href]="gameHomeUrl">{{gameHomeUrl}}</a>
   </material-button>
 </div>
 
+<!-- Validation results are revealed, current scoreboard, option to start next
+  round -->
+<div *ngIf="phase == Phase.postRound">
+  <div class="title">Round {{round}}</div>
+  <div class="description">The letter was {{letter}}</div>
+  <div class="description">
+    The results are in!
+  </div>
+
+  <div *ngFor="let player of players">
+    <span class="player">Player: {{player}}</span>
+    <ul class="answers">
+      <ng-container *ngFor="let category of categories">
+        <li>
+          {{category}}: {{playerToCategoryToGradedAnswers[player][category].text}}
+          <material-checkbox
+            [checked]="playerToCategoryToGradedAnswers[player][category].valid"
+            disabled>
+          </material-checkbox>
+        </li>
+      </ng-container>
+    </ul>
+  </div>
+  <material-button (trigger)="submitValidation"
+                   [disabled]="!isHost">
+    Submit
+  </material-button>
+</div>
+
+<!-- Game over, reveal winner-->
+<div *ngIf="phase == Phase.endGame">
+</div>
+
+<div class="error">{{error}}</div>
