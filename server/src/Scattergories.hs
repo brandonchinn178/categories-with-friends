@@ -4,10 +4,12 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Scattergories
   ( ActiveGame
   , initGameWithHost
+  , shouldCleanUp
   , servePlayer
   , module X
   ) where
@@ -48,6 +50,14 @@ initGameWithHost host = ActiveGame $
     { game = createGame host
     , playerConns = Map.empty
     }
+
+-- | For the given game, return True if all the players have left or if the
+-- game has run for over an hour.
+shouldCleanUp :: ActiveGame -> Bool
+shouldCleanUp (ActiveGame ActiveGameState{..}) = allPlayersGone || hasTimedOut
+  where
+    allPlayersGone = Map.null playerConns
+    hasTimedOut = True -- TODO
 
 servePlayer :: MVar ActiveGame -> PlayerName -> Connection -> IO ()
 servePlayer activeGameVar playerName playerConn = do

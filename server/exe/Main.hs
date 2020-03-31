@@ -9,7 +9,10 @@
 {-# LANGUAGE TemplateHaskell #-}
 #endif
 
-import Control.Concurrent.MVar (MVar, modifyMVar, newMVar)
+import Control.Concurrent (forkIO, threadDelay)
+import Control.Concurrent.MVar
+    (MVar, modifyMVar, modifyMVar_, newMVar, readMVar)
+import Control.Monad (filterM, forever, void)
 import Control.Monad.IO.Class (liftIO)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
@@ -27,7 +30,8 @@ import WaiAppStatic.Storage.Embedded (embeddedSettings)
 import WaiAppStatic.Types (StaticSettings(..))
 #endif
 
-import Scattergories (ActiveGame, PlayerName, initGameWithHost, servePlayer)
+import Scattergories
+    (ActiveGame, PlayerName, initGameWithHost, servePlayer, shouldCleanUp)
 import Scattergories.Logging (debugT)
 
 type API =
@@ -38,10 +42,18 @@ main :: IO ()
 main = do
   platformVar <- newMVar Map.empty
 
+  -- clean up old games every 5 minutes
+  schedule 600 $ do
+    modifyMVar_ platformVar $ filterMapM (fmap shouldCleanUp . readMVar)
+
   putStrLn $ "Running on port " ++ show port
   run port $ app platformVar
   where
     port = 8000
+
+    -- run the given action every X seconds
+    schedule secs m = void $ forkIO $ forever $
+      m >> threadDelay (secs * 1000000)
 
 app :: MVar Platform -> Application
 app platformVar = serve (Proxy @API) $ serverAPI platformVar
@@ -115,3 +127,8 @@ type StaticAPI = EmptyAPI
 serverStaticAPI :: Server StaticAPI
 serverStaticAPI = emptyServer
 #endif
+
+{- Helpers -}
+
+filterMapM :: (Eq k, Monad m) => (a -> m Bool) -> Map k a -> m (Map k a)
+filterMapM f = fmap Map.fromAscList . filterM (f . snd) . Map.toAscList
