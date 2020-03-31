@@ -26,8 +26,9 @@ import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 
+import Scattergories.Game.Category (Category)
+
 type PlayerName = Text
-type Category = Text
 type Answer = Text
 
 -- | The answers for players in a round.
