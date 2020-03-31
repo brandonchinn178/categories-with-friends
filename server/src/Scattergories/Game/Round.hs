@@ -20,7 +20,6 @@ module Scattergories.Game.Round
 
 import Control.Monad.Random (getRandomR)
 import Data.Functor.Identity (Identity(..))
-import Data.Text (Text)
 import Data.Time (UTCTime, addUTCTime, getCurrentTime)
 import System.Random.Shuffle (shuffleM)
 
@@ -35,8 +34,7 @@ import Scattergories.Game.Answer
     )
 import qualified Scattergories.Game.Answer as Answer
 import Scattergories.Game.Category (Category, allCategories)
-
-type PlayerName = Text
+import Scattergories.Game.Player (PlayerName)
 
 -- | A round in a game of Scattergories.
 data GameRound (status :: GameRoundStatus) = GameRound
