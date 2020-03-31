@@ -31,7 +31,7 @@ import Scattergories (ActiveGame, PlayerName, initGameWithHost, servePlayer)
 import Scattergories.Logging (debugT)
 
 type API =
-       Capture "gameId" Text :> Capture "playerId" PlayerName :> WebSocket
+       "game" :> Capture "gameId" Text :> Capture "playerId" PlayerName :> WebSocket
   :<|> StaticAPI
 
 main :: IO ()
@@ -86,8 +86,8 @@ instance MimeRender HTML ByteString where
 
 type StaticAPI =
        "static" :> Raw
-  :<|> Capture "gameId" Text :> Capture "playerId" PlayerName :> Get '[HTML] ByteString
-  :<|> Capture "gameId" Text :> Get '[HTML] ByteString
+  :<|> "game" :> Capture "gameId" Text :> Capture "playerId" PlayerName :> Get '[HTML] ByteString
+  :<|> "game" :> Capture "gameId" Text :> Get '[HTML] ByteString
   :<|> Get '[HTML] ByteString
 
 serverStaticAPI :: Server StaticAPI
