@@ -17,6 +17,7 @@ import Control.Monad.IO.Class (liftIO)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
+import Data.Time (getCurrentTime)
 import Network.Wai.Handler.Warp (run)
 import Network.WebSockets (Connection)
 import Servant
@@ -44,7 +45,8 @@ main = do
 
   -- clean up old games every 5 minutes
   schedule 600 $ do
-    modifyMVar_ platformVar $ filterMapM (fmap shouldCleanUp . readMVar)
+    now <- getCurrentTime
+    modifyMVar_ platformVar $ filterMapM (fmap (shouldCleanUp now) . readMVar)
 
   putStrLn $ "Running on port " ++ show port
   run port $ app platformVar
@@ -81,7 +83,7 @@ loadOrCreateGame platformVar gameId playerName =
   modifyMVar platformVar $ \platform ->
     case Map.lookup gameId platform of
       Nothing -> do
-        activeGameVar <- newMVar $ initGameWithHost playerName
+        activeGameVar <- initGameWithHost playerName >>= newMVar
         return (Map.insert gameId activeGameVar platform, activeGameVar)
       Just activeGameVar -> return (platform, activeGameVar)
 
