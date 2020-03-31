@@ -4,10 +4,12 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Scattergories
   ( ActiveGame
   , initGameWithHost
+  , shouldCleanUp
   , servePlayer
   , module X
   ) where
@@ -19,6 +21,7 @@ import Data.Aeson (FromJSON, ToJSON, eitherDecode', encode)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
+import Data.Time (UTCTime, addUTCTime, getCurrentTime)
 import Network.WebSockets
     ( Connection
     , ConnectionException(..)
@@ -36,18 +39,30 @@ import Scattergories.Messages as X
 data ActiveGameState status = ActiveGameState
   { game        :: Game status
   , playerConns :: Map PlayerName Connection
+  , startTime   :: UTCTime
   }
 
 -- | An ActiveGameState that forgot what its status is.
 data ActiveGame where
   ActiveGame :: forall status. ActiveGameState status -> ActiveGame
 
-initGameWithHost :: PlayerName -> ActiveGame
-initGameWithHost host = ActiveGame $
-  ActiveGameState
-    { game = createGame host
-    , playerConns = Map.empty
-    }
+initGameWithHost :: PlayerName -> IO ActiveGame
+initGameWithHost host = do
+  now <- getCurrentTime
+  return $ ActiveGame $
+    ActiveGameState
+      { game = createGame host
+      , playerConns = Map.empty
+      , startTime = now
+      }
+
+-- | For the given game, return True if all the players have left or if the
+-- game has run for over an hour.
+shouldCleanUp :: UTCTime -> ActiveGame -> Bool
+shouldCleanUp now (ActiveGame ActiveGameState{..}) = allPlayersGone || hasTimedOut
+  where
+    allPlayersGone = Map.null playerConns
+    hasTimedOut = now > addUTCTime 3600 startTime
 
 servePlayer :: MVar ActiveGame -> PlayerName -> Connection -> IO ()
 servePlayer activeGameVar playerName playerConn = do
