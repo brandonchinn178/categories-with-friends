@@ -48,6 +48,11 @@ if [[ "$STYLISH_APPLY" == 1 ]]; then
 else
     TMPFILE="$(mktemp)"
     for FILE in "${FILES[@]}"; do
+        # See comments in file
+        if [[ "${FILE}" == */Scattergories/ActiveGame.hs ]]; then
+            continue
+        fi
+
         DIFF_OPTS=(
             --label "${FILE}"
             --label stylish-haskell
