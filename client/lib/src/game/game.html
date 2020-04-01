@@ -11,7 +11,7 @@ Share this link with other people: <a [href]="gameHomeUrl">{{gameHomeUrl}}</a>
   </ul>
 
   <div>Only the host can start the game</div>
-  <material-button [disabled]="!isHost" (trigger)="startRound">Start game</material-button>
+  <material-button raised [disabled]="!isHost" (trigger)="startRound">Start game</material-button>
 </div>
 
 <!-- Play game, insert answers -->
@@ -23,7 +23,7 @@ Share this link with other people: <a [href]="gameHomeUrl">{{gameHomeUrl}}</a>
     <span class="category">{{category}}</span>
     <material-input [(ngModel)]="categoryToAnswer[category]"></material-input>
   </div>
-  <material-button (trigger)="submitAnswers" [disabled]="submittedAnswers">Submit</material-button>
+  <material-button raised (trigger)="submitAnswers" [disabled]="submittedAnswers">Submit</material-button>
 </div>
 
 <!-- View everyone's answers and argue -->
@@ -48,7 +48,7 @@ Share this link with other people: <a [href]="gameHomeUrl">{{gameHomeUrl}}</a>
       </ng-container>
     </ul>
   </div>
-  <material-button (trigger)="submitValidation"
+  <material-button raised (trigger)="submitValidation"
                    [disabled]="!isHost">
     Submit
   </material-button>
@@ -87,8 +87,8 @@ Share this link with other people: <a [href]="gameHomeUrl">{{gameHomeUrl}}</a>
       </li>
     </ol>
   </div>
-  <material-button *ngIf="nextRound" [disabled]="!isHost" (trigger)="startRound">Next round</material-button>
-  <material-button *ngIf="!nextRound" (trigger)="newGame">Finish</material-button>
+  <material-button raised *ngIf="nextRound" [disabled]="!isHost" (trigger)="startRound">Next round</material-button>
+  <material-button raised *ngIf="!nextRound" (trigger)="newGame">Finish</material-button>
 </div>
 
 <div class="error">{{error}}</div>
