@@ -8,7 +8,7 @@ import '../api_client.dart';
 import '../api_classes.dart';
 import '../routes.dart';
 
-enum Phase { lobby, inRound, validation, postRound, endGame }
+enum Phase { lobby, inRound, validation, postRound }
 
 @Component(
   selector: 'game',
@@ -30,6 +30,7 @@ class GameComponent implements OnActivate {
   final ApiClient _apiClient;
   String _gameId;
   String _player;
+  String get player => _player;
 
   bool _isHost = false;
   bool get isHost => _isHost;
@@ -97,7 +98,6 @@ class GameComponent implements OnActivate {
     _apiClient.onStartRound.listen(_startRound);
     _apiClient.onStartValidation.listen(_startValidation);
     _apiClient.onEndRound.listen(_endRound);
-    _apiClient.onEndGame.listen(_endGame);
     _apiClient.onError.listen(_onError);
   }
 
@@ -145,20 +145,27 @@ class GameComponent implements OnActivate {
 
   void _endRound(EndRound value) {
     _playerToCategoryToGradedAnswers = value.playerToCategoryToGradedAnswers;
-    _playerToScore = value.playerToScore;
+    // Temp storage of unsorted map.
+    final unsorted = value.playerToScore;
+    // Sort the map so that the highest scores come first.
+    final sortedKeys = unsorted.keys.toList()
+      ..sort((k1, k2) => unsorted[k1].compareTo(unsorted[k2]));
+    _playerToScore =
+        Map.fromIterable(sortedKeys, value: (key) => unsorted[key]);
     _nextRound = value.nextRound;
     _phase = Phase.postRound;
   }
 
-  void _endGame(EndGame value) {
-    _phase = Phase.endGame;
+  // TODO
+  void newGame() {
+    _phase = Phase.lobby;
   }
 
   void _onError(String value) {
     _error = value;
   }
 
-  void startGame() => _apiClient.sendRequest(StartRound.request());
+  void startRound() => _apiClient.sendRequest(StartRound.request());
   void submitAnswers() {
     _submittedAnswers = true;
     _apiClient.sendRequest(StartValidation.request(categoryToAnswer));

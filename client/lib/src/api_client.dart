@@ -26,9 +26,6 @@ class ApiClient {
   final _onEndRound = StreamController<EndRound>.broadcast();
   Stream<EndRound> get onEndRound => _onEndRound.stream;
 
-  final _onEndGame = StreamController<EndGame>.broadcast();
-  Stream<EndGame> get onEndGame => _onEndGame.stream;
-
   final _onError = StreamController<String>.broadcast();
   Stream<String> get onError => _onError.stream;
 
@@ -79,9 +76,6 @@ class ApiClient {
         return;
       case 'end_round':
         _onEndRound.add(EndRound(object));
-        return;
-      case 'end_game':
-        _onEndGame.add(EndGame());
         return;
       default:
         throw ArgumentError('Event $event is hnhandled');
