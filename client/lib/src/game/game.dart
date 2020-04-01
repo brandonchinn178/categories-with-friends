@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:angular/angular.dart';
 import 'package:angular_router/angular_router.dart';
 import 'package:angular_components/material_checkbox/material_checkbox.dart';
@@ -9,6 +11,8 @@ import '../api_classes.dart';
 import '../routes.dart';
 
 enum Phase { lobby, inRound, validation, postRound }
+const second = const Duration(seconds: 1);
+const secondsPerRound = 3 * 60; // 3 minutes
 
 @Component(
   selector: 'game',
@@ -69,6 +73,10 @@ class GameComponent implements OnActivate {
   bool _nextRound = true;
   bool get nextRound => _nextRound;
 
+  Timer _timer;
+  String _timeRemaining = '';
+  String get timeRemaining => _timeRemaining;
+
   List<String> _categories;
   List<String> get categories => _categories;
 
@@ -119,12 +127,29 @@ class GameComponent implements OnActivate {
     _categories = value.categories;
     _letter = value.letter;
     _endTime = value.endTime;
+    _timeRemaining = _calculateTimeRemaining(secondsPerRound);
 
     _categoryToAnswer = Map.fromIterable(_categories, value: (_) => _letter);
 
-    // TODO: Count down before starting.
+    _timer = Timer.periodic(second, _updateTimer);
     _submittedAnswers = false;
     _phase = Phase.inRound;
+  }
+
+  String _calculateTimeRemaining(int secondsLeft) {
+    String _minutesToDisplay = '${(secondsLeft / 60).floor()}';
+    String _secondsToDisplay = '${secondsLeft % 60}';
+    return '${_minutesToDisplay.padLeft(2, '0')}:${_secondsToDisplay.padLeft(2, '0')}';
+  }
+
+  String _updateTimer(Timer timer) {
+    final elapsedSeconds = timer.tick;
+    final secondsLeft = secondsPerRound - elapsedSeconds;
+    _timeRemaining = _calculateTimeRemaining(secondsLeft);
+    if (secondsLeft == 0) {
+      timer.cancel();
+      submitAnswers();
+    }
   }
 
   void _startValidation(StartValidation value) {

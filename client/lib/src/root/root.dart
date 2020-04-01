@@ -36,7 +36,6 @@ class RootComponent {
       return;
     }
 
-    // TODO: Call API, only navigate after success.
     _router.navigate(_gameUrl);
   }
 }

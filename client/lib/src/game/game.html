@@ -18,11 +18,11 @@ Share this link with other people: <a [href]="gameHomeUrl">{{gameHomeUrl}}</a>
 <div *ngIf="phase == Phase.inRound">
   <div class="title">Round {{round}}</div>
   <div class="description">The letter is {{letter}}</div>
+  <div class="timer">{{timeRemaining}}</div>
   <div *ngFor="let category of categories">
     <span class="category">{{category}}</span>
     <material-input [(ngModel)]="categoryToAnswer[category]"></material-input>
   </div>
-  <!-- TODO: Add a timer that triggers submitAnswers -->
   <material-button (trigger)="submitAnswers" [disabled]="submittedAnswers">Submit</material-button>
 </div>
 
