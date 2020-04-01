@@ -1,3 +1,4 @@
+import 'dart:html';
 import 'package:angular/angular.dart';
 import 'package:angular_components/material_input/material_input.dart';
 import 'package:angular_components/material_button/material_button.dart';
@@ -24,6 +25,9 @@ class RootComponent {
   String _errorMsg = '';
   String get errorMsg => _errorMsg;
 
+  @ViewChild('playerInput')
+  MaterialInputComponent playerInput;
+
   void onEnter() {
     _errorMsg = '';
 
@@ -37,5 +41,17 @@ class RootComponent {
     }
 
     _router.navigate(_gameUrl);
+  }
+
+  void onGameIdKeypress(KeyboardEvent e) {
+    if (e.key == 'Enter') {
+      playerInput.focus();
+    }
+  }
+
+  void onPlayerKeypress(KeyboardEvent e) {
+    if (e.key == 'Enter') {
+      onEnter();
+    }
   }
 }
