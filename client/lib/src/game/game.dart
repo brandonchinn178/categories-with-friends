@@ -200,8 +200,9 @@ class GameComponent implements OnActivate {
 
   void startRound() => _apiClient.sendRequest(StartRound.request());
   void submitAnswers() {
+    // Cancel timer in case it wasn't yet.
     _timer.cancel();
-    _timer.cancel();
+
     _submittedAnswers = true;
     // If the user didn't add any input, don't just send the plain letter.
     final filteredAnswers = Map<String, String>.fromIterable(

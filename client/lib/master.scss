@@ -9,3 +9,21 @@ h1 {
   @include button-color('material-button', white);
 }
 
+// Ng-deep will apply to all nested components as well.
+// We cheat and use this for master styling.
+::ng-deep {
+  .card {
+    background: #fdfdf7;
+    border: .5px green solid;
+    border-radius: 8px;
+    margin: auto;
+    max-width: 600px;
+    min-width: 400px;
+    padding: 16px;
+  }
+
+  .title {
+    color: #5f5c5c;
+    font-size: 20px;
+  }
+}
