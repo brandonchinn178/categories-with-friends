@@ -11,5 +11,8 @@
 /client/build/
 .packages
 
+# build artifacts
+/public/
+
 *.swp
 .*.swp
