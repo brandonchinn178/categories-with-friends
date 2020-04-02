@@ -43,12 +43,7 @@ import Scattergories.Game.Answer
     (AllAnswers, AllRatedAnswers, AnswerRatings, AnswersForPlayer)
 import Scattergories.Game.Player (PlayerName)
 import Scattergories.Game.Round
-    ( GameRound
-    , GameRoundInfo(roundNum)
-    , GameRoundStatus(..)
-    , generateRound
-    , tryLockAnswers
-    )
+    (GameRound, GameRoundInfo(roundNum), GameRoundStatus(..), generateRound)
 import qualified Scattergories.Game.Round as Round
 
 data Game (status :: GameStatus) = Game
@@ -98,13 +93,8 @@ getState :: Game status -> GameState status
 getState = state
 
 getScores :: Game status -> Map PlayerName Int
-getScores game = Map.unionsWith (+) $ pastRoundsScores ++ currRoundScores
+getScores = Map.unionsWith (+) . map scoreRound . pastRounds
   where
-    pastRoundsScores = map scoreRound (pastRounds game)
-    currRoundScores = case state game of
-      GameRoundFinished gameRound -> [scoreRound gameRound]
-      _ -> []
-
     scoreRound gameRound = scorePlayer <$> Round.getRatedAnswers gameRound
     scorePlayer = Map.size . Map.filter ((== True) . snd)
 
@@ -197,9 +187,8 @@ addAnswers
   -> AddAnswersResult
 addAnswers playerName playerAnswers game = withCurrRound (updateGame . Round.addAnswers playerName playerAnswers) game
   where
-    updateGame updatedRound = case tryLockAnswers updatedRound of
-      Just lockedRound -> GoToRatingPhase $ game { state = GameRoundBeingRated lockedRound }
-      Nothing -> WaitForOtherPlayers $ game { state = GameRoundBeingAnswered updatedRound }
+    updateGame (Right lockedRound) = GoToRatingPhase $ game { state = GameRoundBeingRated lockedRound }
+    updateGame (Left updatedRound) = WaitForOtherPlayers $ game { state = GameRoundBeingAnswered updatedRound }
 
 -- | Set the given ratings for the players' answers.
 -- Errors if an answer for a player and category does not exist in the input.
