@@ -9,7 +9,8 @@ import 'api_classes.dart';
 // when using dartdevc, but dartdevc doesn't support setting environment
 // variables
 // https://stackoverflow.com/a/51893647
-final apiHost = const String.fromEnvironment('apiHost', defaultValue: 'localhost:8000');
+final apiHost =
+    const String.fromEnvironment('apiHost', defaultValue: 'localhost:8000');
 
 @Injectable()
 class ApiClient {
@@ -25,16 +26,14 @@ class ApiClient {
   final _onEndRound = StreamController<EndRound>.broadcast();
   Stream<EndRound> get onEndRound => _onEndRound.stream;
 
-  final _onEndGame = StreamController<EndGame>.broadcast();
-  Stream<EndGame> get onEndGame => _onEndGame.stream;
-
   final _onError = StreamController<String>.broadcast();
   Stream<String> get onError => _onError.stream;
 
   WebSocket _webSocket;
 
   void init(String gameId, String player) {
-    _webSocket = WebSocket('ws://${apiHost}/${gameId}/${player}');
+    // TODO: Use wss
+    _webSocket = WebSocket('ws://${apiHost}/game/${gameId}/${player}');
     _webSocket.onMessage.listen((MessageEvent e) => _routeResponse(e.data));
   }
 
@@ -77,9 +76,6 @@ class ApiClient {
         return;
       case 'end_round':
         _onEndRound.add(EndRound(object));
-        return;
-      case 'end_game':
-        _onEndGame.add(EndGame());
         return;
       default:
         throw ArgumentError('Event $event is hnhandled');

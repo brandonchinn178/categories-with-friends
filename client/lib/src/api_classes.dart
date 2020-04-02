@@ -46,7 +46,13 @@ class StartValidation {
       _playerToCategoryToAnswers;
 
   StartValidation(Map<String, dynamic> object) {
-    _playerToCategoryToAnswers = object['answers'];
+    Map<String, dynamic> answers = object['answers'];
+    _playerToCategoryToAnswers = {};
+    for (final entry in answers.entries) {
+      final player = entry.key;
+      Map<String, String> categoryToAnswer = entry.value.cast<String, String>();
+      _playerToCategoryToAnswers[player] = categoryToAnswer;
+    }
   }
 
   static String request(Map<String, String> categoryToAnswer) {
@@ -66,9 +72,9 @@ class Answer {
 }
 
 class EndRound {
-  Map<String, Map<String, Answer>> _playerToCategoryToAnswers;
-  Map<String, Map<String, Answer>> get playerToCategoryToAnswers =>
-      _playerToCategoryToAnswers;
+  Map<String, Map<String, Answer>> _playerToCategoryToGradedAnswers;
+  Map<String, Map<String, Answer>> get playerToCategoryToGradedAnswers =>
+      _playerToCategoryToGradedAnswers;
 
   Map<String, int> _playerToScore;
   Map<String, int> get playerToScore => _playerToScore;
@@ -77,9 +83,20 @@ class EndRound {
   bool get nextRound => _nextRound;
 
   EndRound(Map<String, dynamic> object) {
-    // TODO: Parse the Answers might take more time.
-    _playerToCategoryToAnswers = object['answers'];
-    _playerToScore = object['scores'];
+    _playerToCategoryToGradedAnswers = {};
+    Map<String, dynamic> answers = object['answers'];
+    for (final entry in answers.entries) {
+      final player = entry.key;
+      Map<String, Answer> categoryToGradedAnswer =
+          Map.fromIterable(entry.value.entries,
+              key: (entry) => entry.key,
+              // entry.value: Tuple (String answerText, bool valid)
+              value: (entry) => Answer(entry.value[0], entry.value[1]));
+      ;
+      _playerToCategoryToGradedAnswers[player] = categoryToGradedAnswer;
+    }
+
+    _playerToScore = object['scores'].cast<String, int>();
     _nextRound = object['next_round'];
   }
 
@@ -89,13 +106,6 @@ class EndRound {
       'event': 'end_validation',
       'votes': playerToCategoryToValid
     };
-    return jsonEncode(object);
-  }
-}
-
-class EndGame {
-  static String request() {
-    final object = {'event': 'end_game'};
     return jsonEncode(object);
   }
 }

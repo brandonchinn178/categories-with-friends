@@ -13,7 +13,7 @@ import 'src/routes.dart';
     </nav>
     <router-outlet [routes]="Routes.all"></router-outlet>
   ''',
-  styles: ['.active-route {color: #039be5}'],
+  styleUrls: ['master.css'],
   directives: [routerDirectives],
   exports: [RoutePaths, Routes],
 )

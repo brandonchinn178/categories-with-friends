@@ -1,0 +1,11 @@
+@import 'package:angular_components/material_button/mixins';
+
+h1 {
+  color: green;
+}
+
+:host {
+  @include button-background-color('material-button', green);
+  @include button-color('material-button', white);
+}
+

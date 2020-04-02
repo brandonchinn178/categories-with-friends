@@ -1,14 +1,19 @@
+import 'dart:async';
+
 import 'package:angular/angular.dart';
 import 'package:angular_router/angular_router.dart';
 import 'package:angular_components/material_checkbox/material_checkbox.dart';
 import 'package:angular_components/material_input/material_input.dart';
 import 'package:angular_components/material_button/material_button.dart';
+import 'package:quiver/strings.dart';
 
 import '../api_client.dart';
 import '../api_classes.dart';
 import '../routes.dart';
 
-enum Phase { lobby, inRound, postRound, endGame }
+enum Phase { lobby, inRound, validation, postRound }
+const second = const Duration(seconds: 1);
+const secondsPerRound = 3 * 60; // 3 minutes
 
 @Component(
   selector: 'game',
@@ -30,6 +35,7 @@ class GameComponent implements OnActivate {
   final ApiClient _apiClient;
   String _gameId;
   String _player;
+  String get player => _player;
 
   bool _isHost = false;
   bool get isHost => _isHost;
@@ -40,6 +46,9 @@ class GameComponent implements OnActivate {
   String _host = '';
   String get host => _host;
 
+  String _error = '';
+  String get error => _error;
+
   List<String> _players = [];
   List<String> get players => _players;
 
@@ -47,19 +56,38 @@ class GameComponent implements OnActivate {
   Map<String, Map<String, String>> get playerToCategoryToAnswers =>
       _playerToCategoryToAnswers;
 
-  Map<String, Map<String, String>> _categoryToPlayerToAnswers = {};
-  Map<String, Map<String, String>> get categoryToPlayerToAnswers =>
-      _categoryToPlayerToAnswers;
+  String answer(String player, String category) =>
+      _playerToCategoryToAnswers[player][category];
+  bool isBlankAnswer(String player, String category) =>
+      isBlank(answer(player, category));
+
+  Map<String, Map<String, Answer>> _playerToCategoryToGradedAnswers = {};
+  Map<String, Map<String, Answer>> get playerToCategoryToGradedAnswers =>
+      _playerToCategoryToGradedAnswers;
 
   Map<String, Map<String, bool>> _playerToCategoryToValid = {};
   Map<String, Map<String, bool>> get playerToCategoryToValid =>
       _playerToCategoryToValid;
 
+  Map<String, int> _playerToScore = {};
+  Map<String, int> get playerToScore => _playerToScore;
+
   int _round = 0;
   int get round => _round;
 
+  /// True if a next round exists.
+  bool _nextRound = true;
+  bool get nextRound => _nextRound;
+
+  Timer _timer;
+  String _timeRemaining = '';
+  String get timeRemaining => _timeRemaining;
+
   List<String> _categories;
   List<String> get categories => _categories;
+
+  bool _submittedAnswers;
+  bool submittedAnswers = false;
 
   Map<String, String> _categoryToAnswer = {};
   Map<String, String> get categoryToAnswer => _categoryToAnswer;
@@ -80,12 +108,12 @@ class GameComponent implements OnActivate {
 
   GameComponent(this._apiClient) {
     _uri = Uri.base;
-    _apiClient.onPlayerList.listen(_updatePlayerList);
-    _apiClient.onStartRound.listen(_startRound);
-    _apiClient.onStartValidation.listen(_startValidation);
-    _apiClient.onEndRound.listen(_endRound);
-    _apiClient.onEndGame.listen(_endGame);
-    _apiClient.onError.listen(_onError);
+    _apiClient
+      ..onPlayerList.listen(_updatePlayerList)
+      ..onStartRound.listen(_startRound)
+      ..onStartValidation.listen(_startValidation)
+      ..onEndRound.listen(_endRound)
+      ..onError.listen(_onError);
   }
 
   @override
@@ -106,41 +134,82 @@ class GameComponent implements OnActivate {
     _categories = value.categories;
     _letter = value.letter;
     _endTime = value.endTime;
+    _timeRemaining = _calculateTimeRemaining(secondsPerRound);
 
     _categoryToAnswer = Map.fromIterable(_categories, value: (_) => _letter);
 
-    // TODO: Count down before starting.
+    _timer = Timer.periodic(second, _updateTimer);
+    _submittedAnswers = false;
     _phase = Phase.inRound;
+  }
+
+  String _calculateTimeRemaining(int secondsLeft) {
+    String _minutesToDisplay = '${(secondsLeft / 60).floor()}';
+    String _secondsToDisplay = '${secondsLeft % 60}';
+    return '${_minutesToDisplay.padLeft(2, '0')}:${_secondsToDisplay.padLeft(2, '0')}';
+  }
+
+  String _updateTimer(Timer timer) {
+    final elapsedSeconds = timer.tick;
+    final secondsLeft = secondsPerRound - elapsedSeconds;
+    _timeRemaining = _calculateTimeRemaining(secondsLeft);
+    if (secondsLeft == 0) {
+      timer.cancel();
+      submitAnswers();
+    }
   }
 
   void _startValidation(StartValidation value) {
     _playerToCategoryToAnswers = value.playerToCategoryToAnswers;
 
-    _categoryToPlayerToAnswers =
-        Map.fromIterable(_categories, value: (_) => <String, String>{});
-
     _playerToCategoryToValid = {};
 
     for (final player in players) {
-      final categoryToAnswers = _playerToCategoryToAnswers[player];
       for (final category in categories) {
-        _categoryToPlayerToAnswers[category][player] =
-            categoryToAnswers[category];
-
-        // Initialize all validity to true.
+        // Initialize validity to true, unless answer is blank.
         _playerToCategoryToValid[player] ??= {};
-        _playerToCategoryToValid[player][category] = true;
+        _playerToCategoryToValid[player][category] =
+            !isBlankAnswer(player, category);
       }
     }
+
+    _phase = Phase.validation;
   }
 
-  void _endRound(EndRound value) {}
-  void _endGame(EndGame value) {}
-  void _onError(String value) {}
+  void _endRound(EndRound value) {
+    _playerToCategoryToGradedAnswers = value.playerToCategoryToGradedAnswers;
+    // Temp storage of unsorted map.
+    final unsorted = value.playerToScore;
+    // Sort the map so that the highest scores come first.
+    final sortedKeys = unsorted.keys.toList()
+      ..sort((k1, k2) => unsorted[k1].compareTo(unsorted[k2]));
+    _playerToScore =
+        Map.fromIterable(sortedKeys, value: (key) => unsorted[key]);
+    _nextRound = value.nextRound;
+    _phase = Phase.postRound;
+  }
 
-  void startGame() => _apiClient.sendRequest(StartRound.request());
-  void submitAnswers() =>
-      _apiClient.sendRequest(StartValidation.request(categoryToAnswer));
+  // TODO
+  void newGame() {
+    _phase = Phase.lobby;
+  }
+
+  void _onError(String value) {
+    _error = value;
+  }
+
+  void startRound() => _apiClient.sendRequest(StartRound.request());
+  void submitAnswers() {
+    _timer.cancel();
+    _timer.cancel();
+    _submittedAnswers = true;
+    // If the user didn't add any input, don't just send the plain letter.
+    final filteredAnswers = Map<String, String>.fromIterable(
+        categoryToAnswer.entries,
+        key: (entry) => entry.key,
+        value: (entry) => entry.value == _letter ? '' : entry.value);
+    _apiClient.sendRequest(StartValidation.request(filteredAnswers));
+  }
 
   void submitValidation() {
     _apiClient.sendRequest(EndRound.request(playerToCategoryToValid));
