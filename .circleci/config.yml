@@ -112,8 +112,8 @@ jobs:
           command: |
             curl -v --retry 5 --retry-connrefused localhost:8000 -o index.html
             grep '<script defer src="main.dart.js"></script>' index.html
-            curl -vO --retry 5 --retry-connrefused localhost:8000/static/main.dart.js
-            grep 'function dartProgram()' index.js
+            curl -v --retry 5 --retry-connrefused localhost:8000/static/main.dart.js -o main.dart.js
+            grep 'function dartProgram()' main.dart.js
 
 workflows:
   build_and_test:
