@@ -14,12 +14,10 @@ module Scattergories.Game.Round
     -- * Actions
   , generateRound
   , addAnswers
-  , tryLockAnswers
   , rateAnswers
   ) where
 
 import Control.Monad.Random (getRandomR)
-import Data.Functor.Identity (Identity(..))
 import Data.Time (UTCTime, addUTCTime, getCurrentTime)
 import System.Random.Shuffle (shuffleM)
 
@@ -86,32 +84,21 @@ generateRound players roundNum = do
     roundDuration = 3 * 60 -- 3 minutes
 
 -- | Add the given answers for the given player.
-addAnswers :: PlayerName -> AnswersForPlayer -> GameRound 'RoundBeingAnswered -> GameRound 'RoundBeingAnswered
-addAnswers playerName playerAnswers = updateAnswers (Answer.addAnswers playerName playerAnswers)
-
--- | Try to lock the answers in the given round. Return Just with the updated
--- round if everyone has submitted answers, otherwise return Nothing.
-tryLockAnswers :: GameRound 'RoundBeingAnswered -> Maybe (GameRound 'RoundBeingRated)
-tryLockAnswers = updateAnswers' Answer.tryLockAnswers
+addAnswers
+  :: PlayerName
+  -> AnswersForPlayer
+  -> GameRound 'RoundBeingAnswered
+  -> Either (GameRound 'RoundBeingAnswered) (GameRound 'RoundBeingRated)
+addAnswers playerName playerAnswers gameRound =
+  updateRound . Answer.addAnswers playerName playerAnswers . answers $ gameRound
+  where
+    updateRound (Right lockedAnswers) = Right gameRound { answers = lockedAnswers }
+    updateRound (Left updatedAnswers) = Left gameRound { answers = updatedAnswers }
 
 -- | Set the given ratings for the players' answers. Errors if an answer for a
 -- player and category does not exist in the input.
 rateAnswers :: AnswerRatings -> GameRound 'RoundBeingRated -> GameRound 'RoundDone
-rateAnswers ratings = updateAnswers (Answer.rateAnswers ratings)
-
-{- Helpers -}
-
-updateAnswers
-  :: (PlayerAnswers (GameRoundAnswerStatus status1) -> PlayerAnswers (GameRoundAnswerStatus status2))
-  -> GameRound status1
-  -> GameRound status2
-updateAnswers f = runIdentity . updateAnswers' (Identity . f)
-
-updateAnswers'
-  :: Functor f
-  => (PlayerAnswers (GameRoundAnswerStatus status1) -> f (PlayerAnswers (GameRoundAnswerStatus status2)))
-  -> GameRound status1
-  -> f (GameRound status2)
-updateAnswers' f gameRound = fmap updateRound . f . answers $ gameRound
+rateAnswers ratings gameRound =
+  updateRound . Answer.rateAnswers ratings . answers $ gameRound
   where
     updateRound updatedAnswers = gameRound { answers = updatedAnswers }
