@@ -9,6 +9,7 @@
 /dist/
 /client/.dart_tool
 /client/build/
+/client/web/index.html
 .packages
 
 # build artifacts
