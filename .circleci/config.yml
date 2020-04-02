@@ -3,6 +3,10 @@ version: '2.1'
 executors:
   base:
     docker:
+      - image: cimg/base:2019.07
+
+  stack_build:
+    docker:
       - image: fpco/stack-build:lts-15.5
 
 commands:
@@ -35,24 +39,56 @@ commands:
     steps:
       - run:
           name: Build backend
-          command: stack build --flag scattergories:serve_static
+          command: stack build --flag scattergories:serve_static --copy-bins
+      - persist_to_workspace:
+          root: ~/.local/bin
+          paths:
+            - scattergories
+      - store_artifacts:
+          path: ~/.local/bin/scattergories
+          destination: scattergories
 
   lint:
     steps:
       - run: scripts/run-hlint.sh
       - run: scripts/run-stylish-haskell.sh
 
+  test_backend:
+    steps:
+      # TODO: better tests
+      - run:
+          name: Run scattergories
+          command: scattergories
+          background: true
+      - run:
+          name: Test that server is running
+          command: |
+            curl -v --retry 5 --retry-connrefused localhost:8000 -o index.html
+            grep 'Hello world!' index.html
+            curl -vO --retry 5 --retry-connrefused localhost:8000/static/index.js
+            grep 'console.log("Hello world!")' index.js
+
 jobs:
   build:
-    executor: base
+    executor: stack_build
     steps:
       - checkout
       - setup_haskell
       - build_frontend
       - build_backend
       - lint
+  test_backend:
+    executor: base
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /usr/local/bin/
+      - test_backend
 
 workflows:
   build_and_test:
     jobs:
       - build
+      - test_backend:
+          requires:
+            - build
