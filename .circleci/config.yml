@@ -28,6 +28,10 @@ jobs:
 
       # Build frontend
       - run:
+          name: Compile HTML
+          command: scripts/compile_html.sh --prod
+          working_directory: ~/project/client
+      - run:
           name: Build frontend
           command: webdev build
           working_directory: ~/project/client
@@ -110,10 +114,12 @@ jobs:
       - run:
           name: Test that server is running
           command: |
-            curl -v --retry 5 --retry-connrefused localhost:8000 -o index.html
-            grep '<script defer src="main.dart.js"></script>' index.html
+            set -x
+            curl -v --retry 5 --retry-connrefused localhost:8000 | tee index.html
+            grep -q '<script defer src="static/main.dart.js"></script>' index.html
             curl -v --retry 5 --retry-connrefused localhost:8000/static/main.dart.js -o main.dart.js
-            grep 'function dartProgram()' main.dart.js
+            head main.dart.js
+            grep -q 'function dartProgram()' main.dart.js
 
 workflows:
   build_and_test:
