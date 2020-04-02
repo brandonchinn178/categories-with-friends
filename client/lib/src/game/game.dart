@@ -5,6 +5,7 @@ import 'package:angular_router/angular_router.dart';
 import 'package:angular_components/material_checkbox/material_checkbox.dart';
 import 'package:angular_components/material_input/material_input.dart';
 import 'package:angular_components/material_button/material_button.dart';
+import 'package:quiver/strings.dart';
 
 import '../api_client.dart';
 import '../api_classes.dart';
@@ -55,6 +56,11 @@ class GameComponent implements OnActivate {
   Map<String, Map<String, String>> get playerToCategoryToAnswers =>
       _playerToCategoryToAnswers;
 
+  String answer(String player, String category) =>
+      _playerToCategoryToAnswers[player][category];
+  bool isBlankAnswer(String player, String category) =>
+      isBlank(answer(player, category));
+
   Map<String, Map<String, Answer>> _playerToCategoryToGradedAnswers = {};
   Map<String, Map<String, Answer>> get playerToCategoryToGradedAnswers =>
       _playerToCategoryToGradedAnswers;
@@ -102,11 +108,12 @@ class GameComponent implements OnActivate {
 
   GameComponent(this._apiClient) {
     _uri = Uri.base;
-    _apiClient.onPlayerList.listen(_updatePlayerList);
-    _apiClient.onStartRound.listen(_startRound);
-    _apiClient.onStartValidation.listen(_startValidation);
-    _apiClient.onEndRound.listen(_endRound);
-    _apiClient.onError.listen(_onError);
+    _apiClient
+      ..onPlayerList.listen(_updatePlayerList)
+      ..onStartRound.listen(_startRound)
+      ..onStartValidation.listen(_startValidation)
+      ..onEndRound.listen(_endRound)
+      ..onError.listen(_onError);
   }
 
   @override
@@ -159,9 +166,10 @@ class GameComponent implements OnActivate {
 
     for (final player in players) {
       for (final category in categories) {
-        // Initialize all validity to true.
+        // Initialize validity to true, unless answer is blank.
         _playerToCategoryToValid[player] ??= {};
-        _playerToCategoryToValid[player][category] = true;
+        _playerToCategoryToValid[player][category] =
+            !isBlankAnswer(player, category);
       }
     }
 
@@ -192,8 +200,15 @@ class GameComponent implements OnActivate {
 
   void startRound() => _apiClient.sendRequest(StartRound.request());
   void submitAnswers() {
+    _timer.cancel();
+    _timer.cancel();
     _submittedAnswers = true;
-    _apiClient.sendRequest(StartValidation.request(categoryToAnswer));
+    // If the user didn't add any input, don't just send the plain letter.
+    final filteredAnswers = Map<String, String>.fromIterable(
+        categoryToAnswer.entries,
+        key: (entry) => entry.key,
+        value: (entry) => entry.value == _letter ? '' : entry.value);
+    _apiClient.sendRequest(StartValidation.request(filteredAnswers));
   }
 
   void submitValidation() {

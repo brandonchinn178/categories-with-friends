@@ -1,9 +1,11 @@
-Share this link with other people: <a [href]="gameHomeUrl">{{gameHomeUrl}}</a>
-
 <!-- Wait for people -->
 <div *ngIf="phase == Phase.lobby">
+  <div class="share-link">
+     Share this link with other people: 
+     <a [href]="gameHomeUrl">{{gameHomeUrl}}</a>
+  </div>
   <div class="host">Host: {{host}}</div>
-  Currently there are {{players.length}} players.
+  <div>Currently there are {{players.length}} players.</div>
   <ul>
     <li *ngFor="let player of players">
       {{player}}
@@ -23,7 +25,10 @@ Share this link with other people: <a [href]="gameHomeUrl">{{gameHomeUrl}}</a>
     <span class="category">{{category}}</span>
     <material-input [(ngModel)]="categoryToAnswer[category]"></material-input>
   </div>
-  <material-button raised (trigger)="submitAnswers" [disabled]="submittedAnswers">Submit</material-button>
+  <!-- TODO: Remove when ready -->
+  <material-button raised (trigger)="submitAnswers">
+    Submit
+  </material-button>
 </div>
 
 <!-- View everyone's answers and argue -->
@@ -37,15 +42,18 @@ Share this link with other people: <a [href]="gameHomeUrl">{{gameHomeUrl}}</a>
   <div *ngFor="let category of categories">
     <span class="category">Category: {{category}}</span>
     <ul class="answers">
-      <ng-container *ngFor="let player of players">
-        <li>
-          Player {{player}} wrote: {{playerToCategoryToAnswers[player][category]}}
+      <li *ngFor="let player of players">
+        <div *ngIf="isBlankAnswer(player, category)">
+          {{player}} had no answer
+        </div>
+        <div *ngIf="!isBlankAnswer(player, category)">
+          {{player}} wrote: {{playerToCategoryToAnswers[player][category]}}
           <material-checkbox
             [(ngModel)]="playerToCategoryToValid[player][category]"
             [disabled]="!isHost">
           </material-checkbox>
-        </li>
-      </ng-container>
+        </div>
+      </li>
     </ul>
   </div>
   <material-button raised (trigger)="submitValidation"
@@ -66,19 +74,25 @@ Share this link with other people: <a [href]="gameHomeUrl">{{gameHomeUrl}}</a>
   <div class="player-score">
     <div class="player">Your score for the round</div>
     <ul class="answers">
-      <ng-container *ngFor="let category of categories">
-        <li>
-          {{category}}: {{playerToCategoryToGradedAnswers[player][category].text}}
+      <li *ngFor="let category of categories">
+        {{category}}: 
+        <span *ngIf="isBlankAnswer(player,category)">--</span>
+        <span *ngIf="!isBlankAnswer(player,category)">
+          {{playerToCategoryToGradedAnswers[player][category].text}}
           <material-checkbox
             [checked]="playerToCategoryToGradedAnswers[player][category].valid"
             disabled>
           </material-checkbox>
-        </li>
-      </ng-container>
+        </span>
+      </li>
     </ul>
   </div>
 
   <div class="scoreboard">
+    <div>Scoreboard</div>
+    <div *ngIf="!nextRound" class="winner">
+      {{playerToScore.entries.first.key}} won!
+    </div>
     <ol>
       <li *ngFor="let entry of playerToScore.entries; let i = index"
         [class.final-score]="!nextRound"
