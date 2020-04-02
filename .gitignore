@@ -8,6 +8,7 @@
 # Dart
 /dist/
 /client/.dart_tool
+/client/build/
 .packages
 
 *.swp
