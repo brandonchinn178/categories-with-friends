@@ -98,13 +98,8 @@ getState :: Game status -> GameState status
 getState = state
 
 getScores :: Game status -> Map PlayerName Int
-getScores game = Map.unionsWith (+) $ pastRoundsScores ++ currRoundScores
+getScores = Map.unionsWith (+) . map scoreRound . pastRounds
   where
-    pastRoundsScores = map scoreRound (pastRounds game)
-    currRoundScores = case state game of
-      GameRoundFinished gameRound -> [scoreRound gameRound]
-      _ -> []
-
     scoreRound gameRound = scorePlayer <$> Round.getRatedAnswers gameRound
     scorePlayer = Map.size . Map.filter ((== True) . snd)
 
