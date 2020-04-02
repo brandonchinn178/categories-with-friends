@@ -122,11 +122,13 @@ setupPlayer playerName playerConn activeGame = do
     throwCannotJoin = throwIO . CannotJoinGameError
 
     addPlayerToGame :: Game 'GameLoading -> IO ActiveGame
-    addPlayerToGame game = do
-      let updatedGame = initPlayer playerName game
-      setGameAndMessageAll updatedGame refreshPlayerListMessage $ activeGame
-        { playerConns = Map.insert playerName playerConn $ playerConns activeGame
-        }
+    addPlayerToGame game =
+      case initPlayer playerName game of
+        Nothing -> throwCannotJoin "maximum number of players already in game"
+        Just updatedGame ->
+          setGameAndMessageAll updatedGame refreshPlayerListMessage $ activeGame
+            { playerConns = Map.insert playerName playerConn $ playerConns activeGame
+            }
 
     refreshPlayerState :: Game ('GameRunning status) -> (Game ('GameRunning status) -> Message) -> IO ActiveGame
     refreshPlayerState game mkMessage = do

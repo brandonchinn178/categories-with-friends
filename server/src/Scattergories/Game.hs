@@ -155,8 +155,16 @@ createGame host = Game
   , state = GameCreated
   }
 
-initPlayer :: PlayerName -> Game 'GameLoading -> Game 'GameLoading
-initPlayer playerName game = game { players = Set.insert playerName (players game) }
+-- | Add the given player to the game.
+--
+-- Returns Nothing if the game is at the maximum number of players.
+initPlayer :: PlayerName -> Game 'GameLoading -> Maybe (Game 'GameLoading)
+initPlayer playerName game =
+  if Set.size (players game) < maxPlayers
+    then Just game { players = Set.insert playerName (players game) }
+    else Nothing
+  where
+    maxPlayers = 20
 
 {- Starting a round -}
 
