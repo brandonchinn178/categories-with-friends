@@ -8,7 +8,9 @@ import Data.Aeson (FromJSON(..), withObject, (.:))
 import Data.Map.Strict (Map)
 import qualified Data.Text as Text
 
-import Scattergories.Game (Answer, Category, PlayerName)
+import Scattergories.Game.Answer (Answer)
+import Scattergories.Game.Category (Category)
+import Scattergories.Game.Player (PlayerName)
 
 data Event
   = StartRoundEvent
@@ -17,8 +19,6 @@ data Event
     -- ^ a player submitting their answers
   | EndValidationEvent (Map PlayerName (Map Category Bool))
     -- ^ a player has finished validating everyone's answers
-  | EndGameEvent
-    -- ^ the host is ending the game for everyone
   deriving (Show)
 
 instance FromJSON Event where
@@ -28,5 +28,4 @@ instance FromJSON Event where
       "start_round" -> pure StartRoundEvent
       "submit_answers" -> SubmitAnswersEvent <$> o .: "answers"
       "end_validation" -> EndValidationEvent <$> o .: "votes"
-      "end_game" -> pure EndGameEvent
       _ -> fail $ "Invalid event: " ++ Text.unpack eventName

@@ -19,6 +19,7 @@ ghc-options:
   - -Wincomplete-record-updates
   - -Wincomplete-uni-patterns
   - -Wnoncanonical-monad-instances
+  - -optP-Wno-nonportable-include-path
 
 dependencies:
   - aeson
