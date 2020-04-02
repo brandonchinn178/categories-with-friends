@@ -86,8 +86,8 @@ class GameComponent implements OnActivate {
   List<String> _categories;
   List<String> get categories => _categories;
 
-  bool _submittedAnswers;
-  bool submittedAnswers = false;
+  bool _submittedAnswers = false;
+  bool get submittedAnswers => _submittedAnswers;
 
   Map<String, String> _categoryToAnswer = {};
   Map<String, String> get categoryToAnswer => _categoryToAnswer;

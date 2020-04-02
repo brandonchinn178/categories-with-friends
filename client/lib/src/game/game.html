@@ -26,9 +26,12 @@
     </div>
   </div>
   <!-- TODO: Remove when ready -->
-  <material-button class="btn" raised (trigger)="submitAnswers">
-    Submit answers
+  <material-button *ngIf="!submittedAnswers" class="btn" raised (trigger)="submitAnswers">
+    Lock answers
   </material-button>
+  <div *ngIf="submittedAnswers" class="answers-locked">
+    Answers locked
+  </div>
 </div>
 
 <!-- View everyone's answers and argue -->
