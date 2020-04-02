@@ -1,0 +1,58 @@
+version: '2.1'
+
+executors:
+  base:
+    docker:
+      - image: fpco/stack-build:lts-15.5
+
+commands:
+  setup_haskell:
+    steps:
+      - restore_cache:
+          keys:
+            - v0-{{ checksum "stack.yaml" }}-{{ checksum "server/package.yaml" }}
+            - v0-{{ checksum "stack.yaml" }}
+      - run:
+          name: Build external dependencies
+          command: stack build --test --only-dependencies
+      - run:
+          name: Build lint dependencies
+          command: stack build hlint stylish-haskell
+      - save_cache:
+          key: v0-{{ checksum "stack.yaml" }}-{{ checksum "server/package.yaml" }}
+          paths:
+            - ~/.stack
+            - .stack-work
+
+  build_frontend:
+    # TODO
+    steps:
+      - run: mkdir public
+      - run: echo 'Hello world!' > public/index.html
+      - run: echo 'console.log("Hello world!")' > public/index.js
+
+  build_backend:
+    steps:
+      - run:
+          name: Build backend
+          command: stack build --flag scattergories:serve_static
+
+  lint:
+    steps:
+      - run: scripts/run-hlint.sh
+      - run: scripts/run-stylish-haskell.sh
+
+jobs:
+  build:
+    executor: base
+    steps:
+      - checkout
+      - setup_haskell
+      - build_frontend
+      - build_backend
+      - lint
+
+workflows:
+  build_and_test:
+    jobs:
+      - build
