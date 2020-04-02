@@ -1,111 +1,92 @@
+{-# LANGUAGE ConstrainedClassMethods #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Scattergories.Game
   ( Game
-  , GameRound(GameRound, roundNum, categories, letter, endTime)
-  , SomeGameRound(..)
-  , createGame
-  , getScores
-    -- * Players
-  , PlayerName
+  , GameStatus(..)
+  , GameState(..)
+    -- * Game information
   , getHost
   , getPlayers
-  , initPlayer
-    -- * Game status
-  , GameStatus(..)
-  , SGameStatus(..)
-  , getStatus
-  , markGameDone
-  , GameRoundStatus(..)
-  , SGameRoundStatus(..)
-  , getRoundStatus
-    -- * Game round logistics + operations
-  , fromCurrRound
-  , setCurrRound
-  , startRound
-  , lockAnswers
-  , finalizeRound
-  , hasNextRound
-    -- * Categories
-  , Category
-    -- * Answering phase
-  , Answer
+  , getState
+  , getScores
+    -- * Current round information
+  , HasCurrentRound
+  , CurrentRoundStatus
+  , getRoundInfo
   , getAnswers
-  , getValidatedAnswers
-  , addPlayerAnswers
+  , getRatedAnswers
+    -- * Initializing a game
+  , createGame
+  , initPlayer
+    -- * Starting a round
+  , startRound
+    -- * Handle player answers
+  , addAnswers
+  , AddAnswersResult(..)
+  , rateAnswers
+  , RoundDoneResult(..)
+    -- * Ending a round
+  , hasNextRound
   ) where
 
-import Control.Monad ((<=<))
-import Control.Monad.Random (getRandomR)
-import Data.FileEmbed (embedStringFile)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
-import Data.Maybe (fromMaybe)
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.Text (Text)
-import qualified Data.Text as Text
-import Data.Time (UTCTime, addUTCTime, getCurrentTime)
-import System.Random.Shuffle (shuffleM)
+
+import Scattergories.Game.Answer
+    (AllAnswers, AllRatedAnswers, AnswerRatings, AnswersForPlayer)
+import Scattergories.Game.Player (PlayerName)
+import Scattergories.Game.Round
+    ( GameRound
+    , GameRoundInfo(roundNum)
+    , GameRoundStatus(..)
+    , generateRound
+    , tryLockAnswers
+    )
+import qualified Scattergories.Game.Round as Round
 
 data Game (status :: GameStatus) = Game
   { host       :: PlayerName
   , players    :: Set PlayerName
-  , status     :: SGameStatus status
   , pastRounds :: [GameRound 'RoundDone]
-  , currRound  :: Maybe SomeGameRound
-    -- ^ Invariant: Just if status is not GameLoading, otherwise Nothing
-  } deriving (Show)
-
-data GameRound (status :: GameRoundStatus) = GameRound
-  { roundNum   :: Int
-  , categories :: [Category]
-  , letter     :: Char
-  , status     :: SGameRoundStatus status
-  , answers    :: Map PlayerName (Map Category (Answer, Maybe Bool))
-    -- ^ Invariant: if status is RoundDone, all ratings are Just, otherwise they're all Nothing
-  , endTime    :: UTCTime
-    -- ^ End of the answering round
-  } deriving (Show)
-
--- | A GameRound that forgot what its status is.
-data SomeGameRound where
-  SomeGameRound :: forall status. GameRound status -> SomeGameRound
-
-deriving instance Show SomeGameRound
-
-createGame :: PlayerName -> Game 'GameLoading
-createGame host = Game
-  { host
-  , players = Set.empty
-  , status = SGameLoading
-  , pastRounds = []
-  , currRound = Nothing
+  , state      :: GameState status
   }
 
-getScores :: Game status -> Map PlayerName Int
-getScores game = Map.unionsWith (+) $ pastRoundsScores ++ currRoundScores
-  where
-    pastRoundsScores = map scoreRound $ pastRounds game
-    currRoundScores = case currRound game of
-      Nothing -> []
-      Just (SomeGameRound gameRound) -> [scoreRound gameRound]
+data GameStatus = GameLoading | GameRunning GameRoundStatus | GameDone
 
-    scoreRound gameRound = scorePlayer <$> answers gameRound
-    scorePlayer = Map.size . Map.filter ((== Just True) . snd)
+data GameState (status :: GameStatus) where
+  -- | Game initialized but waiting for players
+  GameCreated
+    :: GameState 'GameLoading
 
-{- Players -}
+  -- | A game round is being answered by players
+  GameRoundBeingAnswered
+    :: GameRound 'RoundBeingAnswered
+    -> GameState ('GameRunning 'RoundBeingAnswered)
 
-type PlayerName = Text
+  -- | A game round is being rated by players
+  GameRoundBeingRated
+    :: GameRound 'RoundBeingRated
+    -> GameState ('GameRunning 'RoundBeingRated)
+
+  -- | A game round has finished and is displaying results before the next
+  -- round starts.
+  GameRoundFinished
+    :: GameRound 'RoundDone
+    -> GameState ('GameRunning 'RoundDone)
+
+  -- | All game rounds have been completed.
+  GameFinished
+    :: GameRound 'RoundDone
+    -> GameState 'GameDone
+
+{- Game information -}
 
 getHost :: Game status -> PlayerName
 getHost = host
@@ -113,130 +94,133 @@ getHost = host
 getPlayers :: Game status -> [PlayerName]
 getPlayers = Set.toList . players
 
+getState :: Game status -> GameState status
+getState = state
+
+getScores :: Game status -> Map PlayerName Int
+getScores game = Map.unionsWith (+) $ pastRoundsScores ++ currRoundScores
+  where
+    pastRoundsScores = map scoreRound (pastRounds game)
+    currRoundScores = case state game of
+      GameRoundFinished gameRound -> [scoreRound gameRound]
+      _ -> []
+
+    scoreRound gameRound = scorePlayer <$> Round.getRatedAnswers gameRound
+    scorePlayer = Map.size . Map.filter ((== True) . snd)
+
+{- Current round information -}
+
+class HasCurrentRound (status :: GameStatus) where
+  type CurrentRoundStatus status :: GameRoundStatus
+
+  -- | Run the given function on the current round in the game.
+  withCurrRound
+    :: roundStatus ~ CurrentRoundStatus status
+    => (GameRound roundStatus -> x) -> Game status -> x
+
+  -- | Get the information for the current round.
+  getRoundInfo :: Game status -> GameRoundInfo
+  getRoundInfo = withCurrRound Round.getRoundInfo
+
+  -- | Get the answers for the current round.
+  getAnswers :: (CurrentRoundStatus status ~ 'RoundBeingRated) => Game status -> AllAnswers
+  getAnswers = withCurrRound Round.getAnswers
+
+  -- | Get the rated answers for the current round.
+  getRatedAnswers :: (CurrentRoundStatus status ~ 'RoundDone) => Game status -> AllRatedAnswers
+  getRatedAnswers = withCurrRound Round.getRatedAnswers
+
+instance HasCurrentRound ('GameRunning status) where
+  type CurrentRoundStatus ('GameRunning status) = status
+
+  withCurrRound f game =
+    case state game of
+      GameRoundBeingAnswered gameRound -> f gameRound
+      GameRoundBeingRated gameRound -> f gameRound
+      GameRoundFinished gameRound -> f gameRound
+
+instance HasCurrentRound 'GameDone where
+  type CurrentRoundStatus 'GameDone = 'RoundDone
+
+  withCurrRound f Game{state = GameFinished gameRound} = f gameRound
+
+{- Initializing a game -}
+
+-- | Create a new game with the given player as the host.
+createGame :: PlayerName -> Game 'GameLoading
+createGame host = Game
+  { host
+  , players = Set.singleton host
+  , pastRounds = []
+  , state = GameCreated
+  }
+
 initPlayer :: PlayerName -> Game 'GameLoading -> Game 'GameLoading
 initPlayer playerName game = game { players = Set.insert playerName (players game) }
 
-{- Game status -}
-
-data GameStatus = GameLoading | GameInProgress | GameDone
-
--- | A witness that a Game is in one of the above statuses.
-data SGameStatus (status :: GameStatus) where
-  SGameLoading :: SGameStatus 'GameLoading
-  SGameInProgress :: SGameStatus 'GameInProgress
-  SGameDone :: SGameStatus 'GameDone
-
-deriving instance Show (SGameStatus status)
-
-getStatus :: Game status -> SGameStatus status
-getStatus = status
-
-markGameDone :: Game status -> Game 'GameDone
-markGameDone game = game { status = SGameDone }
-
-data GameRoundStatus = RoundBeingAnswered | RoundBeingValidated | RoundDone
-
--- | A witness that a GameRound is in one of the above statuses.
-data SGameRoundStatus (status :: GameRoundStatus) where
-  SRoundBeingAnswered :: SGameRoundStatus 'RoundBeingAnswered
-  SRoundBeingValidated :: SGameRoundStatus 'RoundBeingValidated
-  SRoundDone :: SGameRoundStatus 'RoundDone
-
-deriving instance Show (SGameRoundStatus status)
-
-getRoundStatus :: GameRound status -> SGameRoundStatus status
-getRoundStatus = status
-
-{- Game round logistics + operations -}
-
-fromCurrRound :: Game 'GameInProgress -> (forall status. GameRound status -> x) -> x
-fromCurrRound game f = case currRound game of
-  Nothing -> error "invariant violated: currRound is Nothing when game is in progress"
-  Just (SomeGameRound gameRound) -> f gameRound
-
-setCurrRound :: GameRound status -> Game 'GameInProgress -> Game 'GameInProgress
-setCurrRound gameRound game = game { currRound = Just $ SomeGameRound gameRound }
+{- Starting a round -}
 
 class CanBeStarted (status :: GameStatus) where
-  addRound :: GameRound 'RoundBeingAnswered -> Game status -> Game 'GameInProgress
   getNextRoundNum :: Game status -> Int
 
 instance CanBeStarted 'GameLoading where
-  addRound gameRound game = setCurrRound gameRound $ game { status = SGameInProgress }
-  getNextRoundNum = const 0
+  getNextRoundNum = const 1
 
-instance CanBeStarted 'GameInProgress where
-  addRound gameRound game = fromCurrRound game $ \lastRound ->
-    case getRoundStatus lastRound of
-      SRoundDone -> setCurrRound gameRound game { pastRounds = pastRounds game ++ [lastRound] }
-      _ -> error "last round wasn't finished"
-  getNextRoundNum game = fromCurrRound game ((+ 1) . roundNum)
+instance CanBeStarted ('GameRunning 'RoundDone) where
+  getNextRoundNum = (+ 1) . roundNum . getRoundInfo
 
--- | Errors if the last round hasn't finished yet.
-startRound :: CanBeStarted status => Game status -> IO (Game 'GameInProgress, GameRound 'RoundBeingAnswered)
+startRound :: CanBeStarted status => Game status -> IO (Game ('GameRunning 'RoundBeingAnswered))
 startRound game = do
-  categories <- take numCategories <$> shuffleM allCategories
-  letter <- getRandomR ('A', 'Z')
-  endTime <- addUTCTime roundDuration <$> getCurrentTime
-  let gameRound = GameRound
-        { roundNum = getNextRoundNum game
-        , answers = Map.empty
-        , status = SRoundBeingAnswered
-        , ..
-        }
+  gameRound <- generateRound (getPlayers game) (getNextRoundNum game)
+  return $ game { state = GameRoundBeingAnswered gameRound }
 
-  return (addRound gameRound game, gameRound)
+{- Handle player answers -}
+
+data AddAnswersResult
+  = WaitForOtherPlayers (Game ('GameRunning 'RoundBeingAnswered))
+  | GoToRatingPhase (Game ('GameRunning 'RoundBeingRated))
+
+-- | Add the given answers for the given player, and return Right if everyone
+-- has submitted their answers, or Left otherwise.
+addAnswers
+  :: PlayerName
+  -> AnswersForPlayer
+  -> Game ('GameRunning 'RoundBeingAnswered)
+  -> AddAnswersResult
+addAnswers playerName playerAnswers game = withCurrRound (updateGame . Round.addAnswers playerName playerAnswers) game
   where
-    numCategories = 12
-    roundDuration = 3 * 60 -- 3 minutes
+    updateGame updatedRound = case tryLockAnswers updatedRound of
+      Just lockedRound -> GoToRatingPhase $ game { state = GameRoundBeingRated lockedRound }
+      Nothing -> WaitForOtherPlayers $ game { state = GameRoundBeingAnswered updatedRound }
 
-lockAnswers :: GameRound 'RoundBeingAnswered -> GameRound 'RoundBeingValidated
-lockAnswers gameRound = gameRound { status = SRoundBeingValidated }
-
--- | Register the given ratings, which determine whether a player's answer is valid.
---
--- Invariant: for every player/category pair in a game round, the player/category pair MUST exist
--- in the ratings map.
-finalizeRound :: Map PlayerName (Map Category Bool) -> GameRound 'RoundBeingValidated -> GameRound 'RoundDone
-finalizeRound allRatings gameRound = gameRound
-  { answers = Map.mapWithKey registerRatings $ answers gameRound
-  , status = SRoundDone
-  }
+-- | Set the given ratings for the players' answers.
+-- Errors if an answer for a player and category does not exist in the input.
+rateAnswers
+  :: AnswerRatings
+  -> Game ('GameRunning 'RoundBeingRated)
+  -> RoundDoneResult
+rateAnswers ratings game = withCurrRound (updateGame . Round.rateAnswers ratings) game
   where
-    registerRatings playerName = Map.mapWithKey (registerRating playerName)
-    registerRating playerName category (answer, _) =
-      let isValid = fromMaybe
-            (error $ "Could not find rating for: " ++ show (playerName, category))
-            $ Map.lookup category <=< Map.lookup playerName $ allRatings
-      in (answer, Just isValid)
+    updateGame updatedRound = finishRound $ game
+      { pastRounds = pastRounds game ++ [updatedRound]
+      , state = GameRoundFinished updatedRound
+      }
 
-hasNextRound :: GameRound status -> Bool
-hasNextRound = (< numRounds) . roundNum
-  where
-    numRounds = 3
+{- Ending a round -}
 
-{- Categories -}
+maxGameRounds :: Int
+maxGameRounds = 3
 
-type Category = Text
+data RoundDoneResult
+  = AdvanceToNextRound (Game ('GameRunning 'RoundDone))
+  | GameIsFinished (Game 'GameDone)
 
-allCategories :: [Category]
-allCategories = Text.lines $(embedStringFile "../data/categories.txt")
+finishRound :: Game ('GameRunning 'RoundDone) -> RoundDoneResult
+finishRound game@Game{ state = GameRoundFinished gameRound } =
+  if roundNum (getRoundInfo game) < maxGameRounds
+    then AdvanceToNextRound game
+    else GameIsFinished $ game { state = GameFinished gameRound }
 
-{- Answering phase -}
-
-type Answer = Text
-
-getAnswers :: GameRound status -> Map PlayerName (Map Category Answer)
-getAnswers = fmap (fmap fst) . answers
-
-getValidatedAnswers :: GameRound 'RoundDone -> Map PlayerName (Map Category (Answer, Bool))
-getValidatedAnswers = fmap (fmap (fmap getRating)) . answers
-  where
-    getRating = fromMaybe $ error "invariant violated: rating is Nothing when round is done"
-
-addPlayerAnswers :: PlayerName -> Map Category Answer -> GameRound 'RoundBeingAnswered -> GameRound 'RoundBeingAnswered
-addPlayerAnswers playerName playerAnswers gameRound = gameRound
-  { answers = Map.insert playerName (initRatings playerAnswers) (answers gameRound)
-  }
-  where
-    initRatings = fmap (, Nothing)
+hasNextRound :: Game status -> Bool
+hasNextRound Game{state = GameFinished{}} = False
+hasNextRound _ = True
