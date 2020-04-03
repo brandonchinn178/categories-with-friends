@@ -198,10 +198,10 @@ startRoundMessage :: Game ('GameRunning 'RoundBeingAnswered) -> Message
 startRoundMessage game = StartRoundMessage (getRoundInfo game)
 
 startValidationMessage :: Game ('GameRunning 'RoundBeingRated) -> Message
-startValidationMessage game = StartValidationMessage (getAnswers game)
+startValidationMessage game = StartValidationMessage (getRoundInfo game) (getAnswers game)
 
 endRoundMessage :: (HasCurrentRound status, CurrentRoundStatus status ~ 'RoundDone) => Game status -> Message
-endRoundMessage game = EndRoundMessage (getRatedAnswers game) (getScores game) (hasNextRound game)
+endRoundMessage game = EndRoundMessage (getRoundInfo game) (getRatedAnswers game) (getScores game) (hasNextRound game)
 
 {- ActiveGame helpers -}
 
