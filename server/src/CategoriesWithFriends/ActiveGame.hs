@@ -11,14 +11,14 @@ https://github.com/jaspervdj/stylish-haskell/issues/183
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Scattergories.ActiveGame (ActiveGame(..)) where
+module CategoriesWithFriends.ActiveGame (ActiveGame(..)) where
 
 import Data.Map.Strict (Map)
 import Data.Time (UTCTime)
 import Network.WebSockets (Connection)
 
-import Scattergories.Game (Game)
-import Scattergories.Game.Player (PlayerName)
+import CategoriesWithFriends.Game (Game)
+import CategoriesWithFriends.Game.Player (PlayerName)
 
 data ActiveGame where
   ActiveGame :: forall status.

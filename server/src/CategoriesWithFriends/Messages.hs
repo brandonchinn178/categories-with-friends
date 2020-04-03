@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Scattergories.Messages
+module CategoriesWithFriends.Messages
   ( Message(..)
   ) where
 
@@ -11,9 +11,9 @@ import Data.Aeson (ToJSON(..), object, (.=))
 import Data.Map.Strict (Map)
 import Data.Time (defaultTimeLocale, formatTime, iso8601DateFormat)
 
-import Scattergories.Game.Answer (AllAnswers, AllRatedAnswers)
-import Scattergories.Game.Player (PlayerName)
-import Scattergories.Game.Round (GameRoundInfo(..))
+import CategoriesWithFriends.Game.Answer (AllAnswers, AllRatedAnswers)
+import CategoriesWithFriends.Game.Player (PlayerName)
+import CategoriesWithFriends.Game.Round (GameRoundInfo(..))
 
 data Message
   = RefreshPlayerListMessage PlayerName [PlayerName]

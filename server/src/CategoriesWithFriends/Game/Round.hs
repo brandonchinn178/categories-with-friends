@@ -3,7 +3,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Scattergories.Game.Round
+module CategoriesWithFriends.Game.Round
   ( GameRound
   , GameRoundInfo(..)
   , GameRoundStatus(..)
@@ -21,7 +21,7 @@ import Control.Monad.Random (getRandomR)
 import Data.Time (UTCTime, addUTCTime, getCurrentTime)
 import System.Random.Shuffle (shuffleM)
 
-import Scattergories.Game.Answer
+import CategoriesWithFriends.Game.Answer
     ( AllAnswers
     , AllRatedAnswers
     , AnswerRatings
@@ -30,11 +30,11 @@ import Scattergories.Game.Answer
     , PlayerAnswers
     , initAnswers
     )
-import qualified Scattergories.Game.Answer as Answer
-import Scattergories.Game.Category (Category, allCategories)
-import Scattergories.Game.Player (PlayerName)
+import qualified CategoriesWithFriends.Game.Answer as Answer
+import CategoriesWithFriends.Game.Category (Category, allCategories)
+import CategoriesWithFriends.Game.Player (PlayerName)
 
--- | A round in a game of Scattergories.
+-- | A round in a game of CategoriesWithFriends.
 data GameRound (status :: GameRoundStatus) = GameRound
   { roundInfo :: GameRoundInfo
   , answers   :: PlayerAnswers (GameRoundAnswerStatus status)

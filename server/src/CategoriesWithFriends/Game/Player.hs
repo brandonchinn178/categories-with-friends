@@ -1,4 +1,4 @@
-module Scattergories.Game.Player
+module CategoriesWithFriends.Game.Player
   ( PlayerName
   ) where
 

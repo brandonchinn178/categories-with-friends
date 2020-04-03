@@ -1,4 +1,4 @@
-module Scattergories.Logging (debugT) where
+module CategoriesWithFriends.Logging (debugT) where
 
 import Data.Time (getCurrentTime)
 

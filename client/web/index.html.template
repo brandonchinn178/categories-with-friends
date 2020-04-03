@@ -3,7 +3,7 @@
 <head>
   <base href="/">
 
-  <title>Generic Category Game</title>
+  <title>Categories With Friends</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="${STATICPATH}/styles.css">
