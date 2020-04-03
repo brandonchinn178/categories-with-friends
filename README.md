@@ -19,8 +19,10 @@ A web project running a multiplayer Scattergories server.
     1. `stack exec scattergories`
 
 1. Build and run the frontend in another tab
-    1. `pub get` within client/
-    1. `webdev serve`.
+    1. `cd client`
+    1. `scripts/compile_html.sh`
+    1. `pub get`
+    1. `webdev serve`
 
 1. Go to `http://localhost:8080`
 
