@@ -112,11 +112,11 @@ setupPlayer playerName playerConn activeGame = do
   -- hack to keep existential within scope
   ActiveGame{game} <- pure activeGame
   updatedActiveGame <- case getState game of
-    GameFinished{} -> throwCannotJoin "game is over"
     GameCreated -> addPlayerToGame game
     GameRoundBeingAnswered{} -> refreshPlayerState game startRoundMessage
     GameRoundBeingRated{} -> refreshPlayerState game startValidationMessage
     GameRoundFinished{} -> refreshPlayerState game endRoundMessage
+    GameFinished{} -> refreshPlayerState game endRoundMessage
 
   return updatedActiveGame
     { playerConns = Map.insert playerName playerConn $ playerConns activeGame
@@ -133,7 +133,7 @@ setupPlayer playerName playerConn activeGame = do
           sendJSONData playerConn $ refreshPlayerListMessage game
           setGameAndMessageAll updatedGame refreshPlayerListMessage activeGame
 
-    refreshPlayerState :: Game ('GameRunning status) -> (Game ('GameRunning status) -> Message) -> IO ActiveGame
+    refreshPlayerState :: Game status -> (Game status -> Message) -> IO ActiveGame
     refreshPlayerState game mkMessage = do
       let isPlayerInGroup = playerName `elem` getPlayers game
       unless isPlayerInGroup $ throwCannotJoin "game already started without you"
