@@ -189,7 +189,7 @@ class GameComponent implements OnActivate {
     final unsorted = value.playerToScore;
     // Sort the map so that the highest scores come first.
     final sortedKeys = unsorted.keys.toList()
-      ..sort((k1, k2) => unsorted[k1].compareTo(unsorted[k2]));
+      ..sort((k1, k2) => unsorted[k2].compareTo(unsorted[k1]));
     _playerToScore =
         Map.fromIterable(sortedKeys, value: (key) => unsorted[key]);
     _nextRound = value.nextRound;
