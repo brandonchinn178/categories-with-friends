@@ -1,6 +1,6 @@
-# Scattergories
+# Categories With Friends
 
-A web project running a multiplayer Scattergories server.
+A web project running a multiplayer game that's definitely not Scattergories.
 
 ## Quickstart
 
@@ -16,7 +16,7 @@ A web project running a multiplayer Scattergories server.
 
 1. Build and run the backend in one tab
     1. `stack build`
-    1. `stack exec scattergories`
+    1. `stack exec categories-with-friends`
 
 1. Build and run the frontend in another tab
     1. `cd client`

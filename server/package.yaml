@@ -1,4 +1,4 @@
-name: scattergories
+name: categories-with-friends
 version: 0.0.1
 verbatim:
   cabal-version: '>= 1.10'
@@ -39,7 +39,7 @@ executable:
   source-dirs: exe
   main: Main.hs
   dependencies:
-    - scattergories
+    - categories-with-friends
     - servant-server
     - servant-websockets
     - warp
