@@ -23,15 +23,17 @@ class StartRound {
   String _letter;
   String get letter => _letter;
 
-  String _endTime;
-  String get endTime => _endTime;
+  // UTC time.
+  DateTime _endTime;
+  DateTime get endTime => _endTime;
 
   StartRound(Map<String, dynamic> object) {
     _categories = new List<String>.from(object['categories']);
     _round = object['round_num'];
     _letter = object['letter'];
-    // TODO: Parse end_time.
-    _endTime = object['end_time'];
+    // Server sends UTC time but DateTime interprets as local by default, so
+    // force it to parse as UTC.
+    _endTime = DateTime.parse('${object['end_time']}z');
   }
 
   static String request() {

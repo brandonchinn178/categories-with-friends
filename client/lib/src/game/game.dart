@@ -13,7 +13,6 @@ import '../routes.dart';
 
 enum Phase { lobby, inRound, validation, postRound }
 const second = const Duration(seconds: 1);
-const secondsPerRound = 3 * 60; // 3 minutes
 
 @Component(
   selector: 'game',
@@ -80,6 +79,7 @@ class GameComponent implements OnActivate {
   bool get nextRound => _nextRound;
 
   Timer _timer;
+  int _secondsRemaining;
   String _timeRemaining = '';
   String get timeRemaining => _timeRemaining;
 
@@ -94,9 +94,6 @@ class GameComponent implements OnActivate {
 
   String _letter;
   String get letter => _letter;
-
-  String _endTime;
-  String get endTime => _endTime;
 
   String get gameHomeUrl => _gameId == null
       ? ''
@@ -133,8 +130,16 @@ class GameComponent implements OnActivate {
     _round = value.round;
     _categories = value.categories;
     _letter = value.letter;
-    _endTime = value.endTime;
-    _timeRemaining = _calculateTimeRemaining(secondsPerRound);
+
+    // In case the user reloads the page, calculate the end time.
+    final durationRemaining = value.endTime.difference(DateTime.now().toUtc());
+    _secondsRemaining = durationRemaining.inSeconds;
+
+    if (_secondsRemaining <= 0) {
+      submitAnswers();
+    }
+
+    _timeRemaining = _calculateTimeRemaining();
 
     _categoryToAnswer = Map.fromIterable(_categories, value: (_) => _letter);
 
@@ -143,17 +148,17 @@ class GameComponent implements OnActivate {
     _phase = Phase.inRound;
   }
 
-  String _calculateTimeRemaining(int secondsLeft) {
-    String _minutesToDisplay = '${(secondsLeft / 60).floor()}';
-    String _secondsToDisplay = '${secondsLeft % 60}';
+  String _calculateTimeRemaining() {
+    String _minutesToDisplay = '${(_secondsRemaining / 60).floor()}';
+    String _secondsToDisplay = '${_secondsRemaining % 60}';
     return '${_minutesToDisplay.padLeft(2, '0')}:${_secondsToDisplay.padLeft(2, '0')}';
   }
 
+  // Called once every second.
   String _updateTimer(Timer timer) {
-    final elapsedSeconds = timer.tick;
-    final secondsLeft = secondsPerRound - elapsedSeconds;
-    _timeRemaining = _calculateTimeRemaining(secondsLeft);
-    if (secondsLeft == 0) {
+    _secondsRemaining--;
+    _timeRemaining = _calculateTimeRemaining();
+    if (_secondsRemaining == 0) {
       timer.cancel();
       submitAnswers();
     }
@@ -189,7 +194,6 @@ class GameComponent implements OnActivate {
     _phase = Phase.postRound;
   }
 
-  // TODO
   void newGame() {
     _phase = Phase.lobby;
   }
