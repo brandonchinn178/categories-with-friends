@@ -2,7 +2,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Scattergories.Game
@@ -21,7 +21,8 @@ module Scattergories.Game
   , getAnswers
   , getRatedAnswers
     -- * Initializing a game
-  , createGame
+  , initGame
+  , resetGame
   , initPlayer
     -- * Starting a round
   , startRound
@@ -136,14 +137,17 @@ instance HasCurrentRound 'GameDone where
 
 {- Initializing a game -}
 
--- | Create a new game with the given player as the host.
-createGame :: PlayerName -> Game 'GameLoading
-createGame host = Game
-  { host
-  , players = Set.singleton host
-  , pastRounds = []
-  , state = GameCreated
-  }
+-- | Initialize an empty game with the given player as the host.
+initGame :: PlayerName -> Game 'GameLoading
+initGame host = initGame' host $ Set.singleton host
+
+-- | Reset a finished game.
+resetGame :: Game 'GameDone -> Game 'GameLoading
+resetGame Game{..} = initGame' host players
+
+-- | Create a new game with the given host and players.
+initGame' :: PlayerName -> Set PlayerName -> Game 'GameLoading
+initGame' host players = Game { pastRounds = [], state = GameCreated, .. }
 
 -- | Add the given player to the game.
 --

@@ -42,7 +42,7 @@ initGameWithHost :: PlayerName -> IO ActiveGame
 initGameWithHost host = do
   now <- getCurrentTime
   return ActiveGame
-    { game = createGame host
+    { game = initGame host
     , playerConns = Map.empty
     , startTime = now
     }
@@ -142,17 +142,15 @@ setupPlayer playerName playerConn activeGame = do
 
 -- | Start a new round in the game.
 startGameRound :: ActiveGame -> IO ActiveGame
-startGameRound activeGame@ActiveGame{game} =
-  case getState game of
-    GameFinished{} -> throwUnexpectedEvent "game is over"
+startGameRound activeGame@ActiveGame{game} = do
+  updatedGame <- case getState game of
     GameRoundBeingAnswered{} -> throwUnexpectedEvent "round isn't over"
     GameRoundBeingRated{} -> throwUnexpectedEvent "round isn't over"
-    GameCreated -> do
-      updatedGame <- startRound game
-      setGameAndMessageAll updatedGame startRoundMessage activeGame
-    GameRoundFinished{} -> do
-      updatedGame <- startRound game
-      setGameAndMessageAll updatedGame startRoundMessage activeGame
+    GameCreated -> startRound game
+    GameRoundFinished{} -> startRound game
+    GameFinished{} -> startRound $ resetGame game
+
+  setGameAndMessageAll updatedGame startRoundMessage activeGame
   where
     throwUnexpectedEvent = throwIO . UnexpectedEventError "start_round"
 
