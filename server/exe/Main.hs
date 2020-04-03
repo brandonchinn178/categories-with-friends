@@ -16,7 +16,7 @@ import CategoriesWithFriends (ActiveGame, initGameWithHost, servePlayer)
 import CategoriesWithFriends.Game.Player (PlayerName)
 import CategoriesWithFriends.Logging (debugT)
 
-import AdminAPI (AdminAPI, serverAdminAPI)
+import AdminAPI (AdminAPI, AdminContext, initAdminContext, serverAdminAPI)
 import Platform (Platform)
 import StaticAPI (StaticAPI, serverStaticAPI)
 
@@ -29,12 +29,15 @@ main :: IO ()
 main = do
   platformVar <- newMVar Map.empty
   port <- maybe 8000 read <$> lookupEnv "PORT"
+  adminCtx <- initAdminContext
 
   putStrLn $ "Running on port " ++ show port
-  run port $ app platformVar
+  run port $ app platformVar adminCtx
 
-app :: MVar Platform -> Application
-app platformVar = serve (Proxy @API) $ serverAPI platformVar
+app :: MVar Platform -> AdminContext -> Application
+app platformVar adminCtx = serveWithContext (Proxy @API) ctx $ serverAPI platformVar
+  where
+    ctx = adminCtx :. EmptyContext
 
 serverAPI :: MVar Platform -> Server API
 serverAPI platformVar =
