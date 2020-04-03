@@ -18,6 +18,7 @@ import Network.Wai.Handler.Warp (run)
 import Network.WebSockets (Connection)
 import Servant
 import Servant.API.WebSocket (WebSocket)
+import System.Environment (lookupEnv)
 
 #ifdef __SERVE_STATIC__
 import Data.ByteString (ByteString)
@@ -36,11 +37,10 @@ type API =
 main :: IO ()
 main = do
   platformVar <- newMVar Map.empty
+  port <- maybe 8000 read <$> lookupEnv "PORT"
 
   putStrLn $ "Running on port " ++ show port
   run port $ app platformVar
-  where
-    port = 8000
 
 app :: MVar Platform -> Application
 app platformVar = serve (Proxy @API) $ serverAPI platformVar
