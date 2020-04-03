@@ -130,19 +130,21 @@ jobs:
           at: .
 
       - run:
-          name: Create new git repo for heroku
+          name: Deploy to Heroku
           command: |
             mkdir -p /heroku-repo
             tar xzf categories-with-friends.tar.gz -C /heroku-repo
+            cp Procfile /heroku-repo
             cd /heroku-repo
+
             git init
+            git config user.email "${GIT_EMAIL}"
+            git config user.name "${GIT_NAME}"
             git add .
-            git commit -am "Deploy: ${CIRCLE_SHA1} (build #${CIRCLE_JOB})"
-      - run:
-          name: Deploy to Heroku
-          command: |
+            git commit -am "Deploy: ${CIRCLE_SHA1} (build #${CIRCLE_BUILD_NUM})"
+
             HEROKU_GIT_REPO=https://heroku:${HEROKU_API_KEY}@git.heroku.com/categories-with-friends.git
-            git push -f "${HEROKU_GIT_REPO}" "${CIRCLE_BRANCH}":master
+            git push -f "${HEROKU_GIT_REPO}" HEAD:master
 
 workflows:
   build_and_test:

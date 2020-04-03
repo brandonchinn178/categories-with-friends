@@ -131,7 +131,7 @@ setupPlayer playerName playerConn activeGame = do
       case initPlayer playerName game of
         Nothing -> throwCannotJoin "maximum number of players already in game"
         Just updatedGame -> do
-          sendJSONData playerConn $ refreshPlayerListMessage game
+          sendJSONData playerConn $ refreshPlayerListMessage updatedGame
           setGameAndMessageAll updatedGame refreshPlayerListMessage activeGame
 
     refreshPlayerState :: Game status -> (Game status -> Message) -> IO ActiveGame
