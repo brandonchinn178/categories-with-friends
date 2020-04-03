@@ -4,7 +4,6 @@
 
 import Control.Concurrent.MVar (MVar, modifyMVar, modifyMVar_, newMVar)
 import Control.Monad.IO.Class (liftIO)
-import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import Network.Wai.Handler.Warp (run)
@@ -17,10 +16,13 @@ import CategoriesWithFriends (ActiveGame, initGameWithHost, servePlayer)
 import CategoriesWithFriends.Game.Player (PlayerName)
 import CategoriesWithFriends.Logging (debugT)
 
+import AdminAPI (AdminAPI, serverAdminAPI)
+import Platform (Platform)
 import StaticAPI (StaticAPI, serverStaticAPI)
 
 type API =
        "game" :> Capture "gameId" Text :> Capture "playerId" PlayerName :> WebSocket
+  :<|> AdminAPI
   :<|> StaticAPI
 
 main :: IO ()
@@ -37,12 +39,10 @@ app platformVar = serve (Proxy @API) $ serverAPI platformVar
 serverAPI :: MVar Platform -> Server API
 serverAPI platformVar =
        serveGame platformVar
+  :<|> serverAdminAPI platformVar
   :<|> serverStaticAPI
 
 {- Serve websocket game -}
-
--- | The state of the platform, mapping game identifiers to Game.
-type Platform = Map Text (MVar ActiveGame)
 
 serveGame :: MVar Platform -> Text -> PlayerName -> Connection -> Handler ()
 serveGame platformVar gameId playerName playerConn = liftIO $ do
