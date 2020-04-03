@@ -17,7 +17,6 @@ module Scattergories.Game.Answer
   , initAnswers
   , AnswersForPlayer
   , addAnswers
-  , tryLockAnswers
   , AnswerRatings
   , rateAnswers
   ) where
@@ -30,10 +29,11 @@ import Scattergories.Game.Category (Category)
 import Scattergories.Game.Player (PlayerName)
 
 type Answer = Text
+type PlayerAnswersMap answers = Map PlayerName (Map Category answers)
 
 -- | The answers for players in a round.
 newtype PlayerAnswers (status :: AnswerStatus) = PlayerAnswers
-  { unPlayerAnswers :: Map PlayerName (Map Category (AnswerInfo status))
+  { unPlayerAnswers :: PlayerAnswersMap (AnswerInfo status)
   }
 
 -- | The possible states that player answers can be in.
@@ -48,7 +48,7 @@ data AnswerInfo (status :: AnswerStatus) where
 
 {- Queries -}
 
-type AllAnswers = Map PlayerName (Map Category Answer)
+type AllAnswers = PlayerAnswersMap Answer
 
 getAnswers :: PlayerAnswers 'AnswersLocked -> AllAnswers
 getAnswers = fmap (fmap fromLockedAnswer) . unPlayerAnswers
@@ -76,18 +76,28 @@ initAnswers players categories = PlayerAnswers $
 type AnswersForPlayer = Map Category Answer
 
 -- | Add the given answers for the given player.
-addAnswers :: PlayerName -> AnswersForPlayer -> PlayerAnswers 'AnswersAccepted -> PlayerAnswers 'AnswersAccepted
-addAnswers playerName answers = PlayerAnswers . addAnswersForPlayer . unPlayerAnswers
+addAnswers
+  :: PlayerName
+  -> AnswersForPlayer
+  -> PlayerAnswers 'AnswersAccepted
+  -> Either (PlayerAnswers 'AnswersAccepted) (PlayerAnswers 'AnswersLocked)
+addAnswers playerName answers = finalize . addAnswersForPlayer . unPlayerAnswers
   where
     answerInfo = MaybeAnswer . Just <$> answers
     addAnswersForPlayer = Map.adjust (const answerInfo) playerName
 
+    finalize updatedAnswers =
+      case tryLockAnswers updatedAnswers of
+        Just lockedAnswers -> Right $ PlayerAnswers lockedAnswers
+        Nothing -> Left $ PlayerAnswers updatedAnswers
+
 -- | Try to lock the given answers. Return Just with the locked answers if
 -- everyone has submitted answers, otherwise return Nothing.
-tryLockAnswers :: PlayerAnswers 'AnswersAccepted -> Maybe (PlayerAnswers 'AnswersLocked)
-tryLockAnswers = fmap PlayerAnswers . tryLockByPlayer . unPlayerAnswers
+tryLockAnswers
+  :: PlayerAnswersMap (AnswerInfo 'AnswersAccepted)
+  -> Maybe (PlayerAnswersMap (AnswerInfo 'AnswersLocked))
+tryLockAnswers = traverse tryLockByCategory
   where
-    tryLockByPlayer = traverse tryLockByCategory
     tryLockByCategory = traverse tryLockAnswer
 
     tryLockAnswer :: AnswerInfo 'AnswersAccepted -> Maybe (AnswerInfo 'AnswersLocked)
@@ -95,7 +105,7 @@ tryLockAnswers = fmap PlayerAnswers . tryLockByPlayer . unPlayerAnswers
       MaybeAnswer (Just answer) -> Just $ LockedAnswer answer
       MaybeAnswer Nothing -> Nothing
 
-type AnswerRatings = Map PlayerName (Map Category Bool)
+type AnswerRatings = PlayerAnswersMap Bool
 
 -- | Set the given ratings for the players' answers. Errors if an answer for a
 -- player and category does not exist in the input.

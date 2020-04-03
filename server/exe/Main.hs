@@ -23,8 +23,6 @@ import Servant.API.WebSocket (WebSocket)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as ByteStringL
 import Data.FileEmbed (embedFile)
-import WaiAppStatic.Storage.Embedded (embeddedSettings)
-import WaiAppStatic.Types (StaticSettings(..))
 #endif
 
 import Scattergories (ActiveGame, initGameWithHost, servePlayer)
@@ -107,14 +105,7 @@ serveHTML :: Handler ByteString
 serveHTML = pure $(embedFile "../public/index.html")
 
 serveStatic :: Server Raw
-serveStatic = serveDirectoryWith staticSettings
-  where
-    staticSettings = (embeddedSettings staticFiles)
-      { ssListing = Nothing -- disallow listing directory of static files
-      }
-    staticFiles =
-      [ ("index.js", $(embedFile "../public/index.js"))
-      ]
+serveStatic = serveDirectoryFileServer "./public"
 #else
 type StaticAPI = EmptyAPI
 

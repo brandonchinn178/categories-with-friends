@@ -1,0 +1,133 @@
+version: '2.1'
+
+jobs:
+  build_frontend:
+    docker:
+      - image: google/dart:2.7
+    steps:
+      - checkout
+      - run:
+          name: Put Dart executables on PATH
+          command: |
+            echo 'export PATH=$PATH:/usr/lib/dart/bin' >> "${BASH_ENV}"
+            echo 'export PATH=$PATH:~/.pub-cache/bin' >> "${BASH_ENV}"
+      - restore_cache:
+          keys:
+            - v0-{{ checksum "client/pubspec.lock" }}
+      - run:
+          name: Install dependencies
+          command: pub get
+          working_directory: ~/project/client
+      - run:
+          name: Install webdev
+          command: pub global activate webdev
+      - save_cache:
+          key: v0-{{ checksum "client/pubspec.lock" }}
+          paths:
+            - ~/.pub-cache
+
+      # Build frontend
+      - run:
+          name: Compile HTML
+          command: scripts/compile_html.sh --prod
+          working_directory: ~/project/client
+      - run:
+          name: Build frontend
+          command: webdev build
+          working_directory: ~/project/client
+      - run:
+          name: Copy client files
+          command: |
+            mkdir -p public
+            cp client/build/*.{html,js,css,png} public
+
+      # Store artifacts
+      - persist_to_workspace:
+          root: .
+          paths:
+            - public/
+      - store_artifacts:
+          path: public/
+
+  build_backend:
+    docker:
+      - image: fpco/stack-build:lts-15.5
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - restore_cache:
+          keys:
+            - v0-{{ checksum "stack.yaml.lock" }}-{{ checksum "server/package.yaml" }}
+            - v0-{{ checksum "stack.yaml.lock" }}
+      - run:
+          name: Build external dependencies
+          command: stack build --test --only-dependencies
+      - run:
+          name: Build lint dependencies
+          command: stack build hlint stylish-haskell
+      - save_cache:
+          key: v0-{{ checksum "stack.yaml.lock" }}-{{ checksum "server/package.yaml" }}
+          paths:
+            - ~/.stack
+            - .stack-work
+
+      # Build backend
+      - run:
+          name: Build backend
+          command: stack build --flag scattergories:serve_static --copy-bins
+      - run:
+          name: Bundle application
+          command: |
+            tar czf scattergories.tar.gz \
+              public/ \
+              -C ~/.local/bin/ scattergories
+
+      # Store artifacts
+      - persist_to_workspace:
+          root: .
+          paths:
+            - scattergories.tar.gz
+      - store_artifacts:
+          path: scattergories.tar.gz
+
+      # Run linting
+      - run: scripts/run-hlint.sh
+      - run: scripts/run-stylish-haskell.sh
+
+  test_backend:
+    docker:
+      - image: cimg/base:2019.07
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+
+      # TODO: better tests
+      - run:
+          name: Unpack application
+          command: tar xzf scattergories.tar.gz
+      - run:
+          name: Run scattergories
+          command: ./scattergories
+          background: true
+      - run:
+          name: Test that server is running
+          command: |
+            set -x
+            curl -v --retry 5 --retry-connrefused localhost:8000 | tee index.html
+            grep -q '<script defer src="static/main.dart.js"></script>' index.html
+            curl -v --retry 5 --retry-connrefused localhost:8000/static/main.dart.js -o main.dart.js
+            head main.dart.js
+            grep -q 'function dartProgram()' main.dart.js
+
+workflows:
+  build_and_test:
+    jobs:
+      - build_frontend
+      - build_backend:
+          requires:
+            - build_frontend
+      - test_backend:
+          requires:
+            - build_backend
