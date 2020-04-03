@@ -6,11 +6,10 @@ import 'src/routes.dart';
 @Component(
   selector: 'my-app',
   template: '''
-    <h1>Generic Category Game</h1>
-    <nav>
+    <h1 class="master-title">
       <a [routerLink]="RoutePaths.root.toUrl()"
-         [routerLinkActive]="'active-route'">Home</a>
-    </nav>
+         [routerLinkActive]="'active-route'">Generic Category Game</a>
+    </h1>
     <router-outlet [routes]="Routes.all"></router-outlet>
   ''',
   styleUrls: ['master.css'],

@@ -43,11 +43,15 @@ class StartRound {
 }
 
 class StartValidation {
+  int _round;
+  int get round => _round;
+
   Map<String, Map<String, String>> _playerToCategoryToAnswers;
   Map<String, Map<String, String>> get playerToCategoryToAnswers =>
       _playerToCategoryToAnswers;
 
   StartValidation(Map<String, dynamic> object) {
+    _round = object['round_num'];
     Map<String, dynamic> answers = object['answers'];
     _playerToCategoryToAnswers = {};
     for (final entry in answers.entries) {
@@ -74,6 +78,9 @@ class Answer {
 }
 
 class EndRound {
+  int _round;
+  int get round => _round;
+
   Map<String, Map<String, Answer>> _playerToCategoryToGradedAnswers;
   Map<String, Map<String, Answer>> get playerToCategoryToGradedAnswers =>
       _playerToCategoryToGradedAnswers;
@@ -86,6 +93,7 @@ class EndRound {
 
   EndRound(Map<String, dynamic> object) {
     _playerToCategoryToGradedAnswers = {};
+    _round = object['round_num'];
     Map<String, dynamic> answers = object['answers'];
     for (final entry in answers.entries) {
       final player = entry.key;

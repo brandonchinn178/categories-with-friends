@@ -165,6 +165,7 @@ class GameComponent implements OnActivate {
   }
 
   void _startValidation(StartValidation value) {
+    _round = value.round;
     _playerToCategoryToAnswers = value.playerToCategoryToAnswers;
 
     _playerToCategoryToValid = {};
@@ -182,6 +183,7 @@ class GameComponent implements OnActivate {
   }
 
   void _endRound(EndRound value) {
+    _round = value.round;
     _playerToCategoryToGradedAnswers = value.playerToCategoryToGradedAnswers;
     // Temp storage of unsorted map.
     final unsorted = value.playerToScore;

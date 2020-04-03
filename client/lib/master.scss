@@ -1,7 +1,10 @@
 @import 'package:angular_components/material_button/mixins';
 
-h1 {
-  color: green;
+.master-title {
+  a {
+    color: green;
+    text-decoration: none;
+  }
 }
 
 :host {
