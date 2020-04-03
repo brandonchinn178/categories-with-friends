@@ -20,9 +20,9 @@ data Message
     -- ^ send the current host and player list to everyone
   | StartRoundMessage GameRoundInfo
     -- ^ send information to start a round
-  | StartValidationMessage AllAnswers
+  | StartValidationMessage GameRoundInfo AllAnswers
     -- ^ send everyone's answers so the host can validate
-  | EndRoundMessage AllRatedAnswers (Map PlayerName Int) Bool
+  | EndRoundMessage GameRoundInfo AllRatedAnswers (Map PlayerName Int) Bool
     -- ^ send the results of the game so far
 
 instance Show Message where
@@ -47,11 +47,13 @@ instance ToJSON Message where
           , "letter" .= letter
           , "end_time" .= formatISO8601 deadline
           ]
-        StartValidationMessage answers ->
-          [ "answers" .= answers
+        StartValidationMessage info answers ->
+          [ "round_num" .= roundNum info
+          , "answers" .= answers
           ]
-        EndRoundMessage answers scores nextRound ->
-          [ "answers" .= answers
+        EndRoundMessage info answers scores nextRound ->
+          [ "round_num" .= roundNum info
+          , "answers" .= answers
           , "scores" .= scores
           , "next_round" .= nextRound
           ]
