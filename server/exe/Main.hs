@@ -74,8 +74,9 @@ loadOrCreateGame platformVar gameId playerName =
 
 -- | Clean up the given game.
 cleanupGame :: MVar Platform -> Text -> IO ()
-cleanupGame platformVar gameId =
+cleanupGame platformVar gameId = do
   modifyMVar_ platformVar $ pure . Map.delete gameId
+  debugT $ "Game " ++ show gameId ++ " cleaned up"
 
 {- Serving static files -}
 
