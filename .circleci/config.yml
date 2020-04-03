@@ -121,6 +121,29 @@ jobs:
             head main.dart.js
             grep -q 'function dartProgram()' main.dart.js
 
+  deploy:
+    docker:
+      - image: cimg/base:2019.07
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+
+      - run:
+          name: Create new git repo for heroku
+          command: |
+            mkdir -p /heroku-repo
+            tar xzf categories-with-friends.tar.gz -C /heroku-repo
+            cd /heroku-repo
+            git init
+            git add .
+            git commit -am "Deploy: ${CIRCLE_SHA1} (build #${CIRCLE_JOB})"
+      - run:
+          name: Deploy to Heroku
+          command: |
+            HEROKU_GIT_REPO=https://heroku:${HEROKU_API_KEY}@git.heroku.com/categories-with-friends.git
+            git push -f "${HEROKU_GIT_REPO}" "${CIRCLE_BRANCH}":master
+
 workflows:
   build_and_test:
     jobs:
@@ -131,3 +154,9 @@ workflows:
       - test_backend:
           requires:
             - build_backend
+      - deploy:
+          requires:
+            - test_backend
+          filters:
+            branches:
+              only: master
