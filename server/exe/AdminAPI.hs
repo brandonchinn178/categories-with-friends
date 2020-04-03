@@ -88,13 +88,15 @@ renderHome platform = renderHtml Nothing $ do
 
 renderGame :: Text -> ActiveGame -> AdminUser -> Markup
 renderGame gameId ActiveGame{..} = renderHtml (Just gameId) $
-  H.table $ do
+  H.table ! H.customAttribute "border" "1" $ do
     row "ID" $ H.text gameId
     row "Start time" $ H.toMarkup $ show startTime
     row "Host" $ H.text $ Game.getHost game
+    row "Players" $ H.ul $
+      mapM_ (H.li . H.text) (Game.getPlayers game)
   where
     row label body = H.tr $ do
-      H.td label
+      H.td ! H.customAttribute "valign" "top" $ H.strong label
       H.td body
 
       -- TODO
@@ -112,9 +114,15 @@ renderHtml maybeTitle body AdminUser{..} = H.docTypeHtml $ do
   H.head $ do
     let titleSuffix = maybe "" ((" – " <>) . H.text) maybeTitle
     H.title $ "Categories With Friends" <> titleSuffix
+    H.style $ H.text $ Text.unlines
+      [ "table * { margin: 0; }"
+      , "td { padding: 5px 20px; }"
+      , "table ul { padding: 0; }"
+      , ".warning { color: red; font-weight: bold; }"
+      ]
   H.body $ do
     H.h1 "Categories With Friends"
     unless usedPassword $
-      H.p $ H.strong "WARNING: admin pages not secured by a password"
+      H.p ! A.class_ "warning" $ "WARNING: admin pages not secured by a password"
 
     body
