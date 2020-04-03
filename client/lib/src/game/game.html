@@ -1,95 +1,83 @@
 <!-- Wait for people -->
-<div *ngIf="phase == Phase.lobby">
+<div *ngIf="phase == Phase.lobby" class="card">
   <div class="share-link">
      Share this link with other people: 
      <a [href]="gameHomeUrl">{{gameHomeUrl}}</a>
   </div>
-  <div class="host">Host: {{host}}</div>
-  <div>Currently there are {{players.length}} players.</div>
+  <div>There are currently {{players.length}} players.</div>
   <ul>
-    <li *ngFor="let player of players">
-      {{player}}
+    <li *ngFor="let player of players" [class.host]="host == player">
+      {{player}} <span *ngIf="host == player">(Host)</span>
     </li>
   </ul>
 
-  <div>Only the host can start the game</div>
-  <material-button raised [disabled]="!isHost" (trigger)="startRound">Start game</material-button>
+  <div class="margin-top">Only the host can start the game</div>
+  <material-button class="btn" raised [disabled]="!isHost" (trigger)="startRound">Start game</material-button>
 </div>
 
 <!-- Play game, insert answers -->
-<div *ngIf="phase == Phase.inRound">
-  <div class="title">Round {{round}}</div>
-  <div class="description">The letter is {{letter}}</div>
+<div *ngIf="phase == Phase.inRound" class="card">
+  <div class="title">Round {{round}} - The letter is {{letter}}</div>
   <div class="timer">{{timeRemaining}}</div>
-  <div *ngFor="let category of categories">
-    <span class="category">{{category}}</span>
-    <material-input [(ngModel)]="categoryToAnswer[category]"></material-input>
+  <div class="answers">
+    <div *ngFor="let category of categories" class="answer-input grid">
+      <span class="category left">{{category}}</span>
+      <material-input class="right" [(ngModel)]="categoryToAnswer[category]"></material-input>
+    </div>
   </div>
   <!-- TODO: Remove when ready -->
-  <material-button raised (trigger)="submitAnswers">
-    Submit
+  <material-button *ngIf="!submittedAnswers" class="btn" raised (trigger)="submitAnswers">
+    Lock answers
   </material-button>
+  <div *ngIf="submittedAnswers" class="answers-locked">
+    Answers locked
+  </div>
 </div>
 
 <!-- View everyone's answers and argue -->
-<div *ngIf="phase == Phase.validation">
-  <div class="title">Round {{round}}</div>
-  <div class="description">The letter is {{letter}}</div>
+<div *ngIf="phase == Phase.validation" class="card">
+  <div class="title">Round {{round}} Validation - The letter was {{letter}}</div>
   <div class="description">
     Share your answers and discuss which ones should not count. Only the host can mark answers as invalid.
   </div>
 
-  <div *ngFor="let category of categories">
-    <span class="category">Category: {{category}}</span>
-    <ul class="answers">
-      <li *ngFor="let player of players">
+  <div *ngFor="let category of categories" class="grid">
+    <div class="validation-category">{{category}}</div>
+    <div><!-- Placeholder for grid --></div>
+
+    <ng-container *ngFor="let player of players">
+      <div class="left">
+        {{player}}
+      </div>
+      <div class="right">
         <div *ngIf="isBlankAnswer(player, category)">
-          {{player}} had no answer
+          --
         </div>
         <div *ngIf="!isBlankAnswer(player, category)">
-          {{player}} wrote: {{playerToCategoryToAnswers[player][category]}}
+          {{playerToCategoryToAnswers[player][category]}}
           <material-checkbox
+            class="grade"
             [(ngModel)]="playerToCategoryToValid[player][category]"
             [disabled]="!isHost">
           </material-checkbox>
         </div>
-      </li>
-    </ul>
+      </div>
+    </ng-container>
   </div>
-  <material-button raised (trigger)="submitValidation"
-                   [disabled]="!isHost">
-    Submit
+  <div class="margin-top" *ngIf="!isHost">Only the host can submit validation</div>
+  <material-button class="btn" raised (trigger)="submitValidation"
+                   *ngIf="isHost">
+    Submit validation
   </material-button>
 </div>
 
 <!-- Validation results are revealed, current scoreboard, option to start next
   round -->
-<div *ngIf="phase == Phase.postRound">
-  <div class="title">Round {{round}}</div>
-  <div class="description">The letter was {{letter}}</div>
-  <div class="description">
-    The results are in!
-  </div>
-
-  <div class="player-score">
-    <div class="player">Your score for the round</div>
-    <ul class="answers">
-      <li *ngFor="let category of categories">
-        {{category}}: 
-        <span *ngIf="isBlankAnswer(player,category)">--</span>
-        <span *ngIf="!isBlankAnswer(player,category)">
-          {{playerToCategoryToGradedAnswers[player][category].text}}
-          <material-checkbox
-            [checked]="playerToCategoryToGradedAnswers[player][category].valid"
-            disabled>
-          </material-checkbox>
-        </span>
-      </li>
-    </ul>
-  </div>
+<div *ngIf="phase == Phase.postRound" class="card">
+  <div class="title">Round {{round}} Complete - The letter was {{letter}}</div>
 
   <div class="scoreboard">
-    <div>Scoreboard</div>
+    <div class="title">Scoreboard</div>
     <div *ngIf="!nextRound" class="winner">
       {{playerToScore.entries.first.key}} won!
     </div>
@@ -97,12 +85,34 @@
       <li *ngFor="let entry of playerToScore.entries; let i = index"
         [class.final-score]="!nextRound"
         [class.leader]="i == 0">
-        {{entry.value}} points - {{entry.key}}
+        {{entry.key}} - {{entry.value}} points
       </li>
     </ol>
   </div>
-  <material-button raised *ngIf="nextRound" [disabled]="!isHost" (trigger)="startRound">Next round</material-button>
-  <material-button raised *ngIf="!nextRound" (trigger)="newGame">Finish</material-button>
+
+  <div class="player-score">
+    <div class="your-score">Your score for the round</div>
+    <div class="answers grid">
+      <ng-container *ngFor="let category of categories">
+        <div class="category left">{{category}}</div>
+        <div class="right">
+          <div *ngIf="isBlankAnswer(player,category)">--</div>
+          <div *ngIf="!isBlankAnswer(player,category)">
+            {{playerToCategoryToGradedAnswers[player][category].text}}
+            <material-checkbox
+              class="grade"
+              [checked]="playerToCategoryToGradedAnswers[player][category].valid"
+              disabled>
+            </material-checkbox>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+
+  <material-button class="btn" raised *ngIf="nextRound && isHost" (trigger)="startRound">Next round</material-button>
+  <div class="margin-top" *ngIf="nextRound && !isHost">Only the host can continue</div>
+  <material-button class="btn" raised *ngIf="!nextRound" (trigger)="newGame">Finish</material-button>
 </div>
 
 <div class="error">{{error}}</div>

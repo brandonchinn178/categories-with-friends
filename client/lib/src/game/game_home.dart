@@ -1,3 +1,4 @@
+import 'dart:html';
 import 'package:angular/angular.dart';
 import 'package:angular_components/material_input/material_input.dart';
 import 'package:angular_components/material_button/material_button.dart';
@@ -29,6 +30,12 @@ class GameHomeComponent implements OnActivate {
   @override
   void onActivate(_, RouterState current) {
     _gameId = RoutePaths.getGameId(current.parameters);
+  }
+
+  void onPlayerKeypress(KeyboardEvent e) {
+    if (e.key == 'Enter') {
+      onEnter();
+    }
   }
 
   void onEnter() {

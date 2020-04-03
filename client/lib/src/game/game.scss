@@ -1,0 +1,81 @@
+.grid {
+  align-items: center;
+  display: grid;
+  grid-template-columns: 200px auto;
+  grid-gap: 8px;
+
+  material-input {
+    margin-top: 8px;
+  }
+}
+
+.category {
+  color: #5f5c5c;
+}
+
+.validation-category {
+  color: #5f5c5c;
+  font-size: 20px;
+  margin: 8px 0;
+}
+
+.share-link {
+  color: #0779a7;
+  margin-bottom: 16px;
+}
+
+.host {
+  color: #403838;
+}
+
+material-button.btn {
+  margin: 16px 0;
+}
+
+.timer {
+  border-radius: 8px;
+  background: #fdfdf7;
+  border: .5px green solid;
+  color: #b10303;
+  font-size: 32px;
+  padding: 32px;
+  position: fixed;
+  right: 32px;
+}
+  
+.title {
+  margin: 16px 0;
+}
+
+.scoreboard {
+  .title {
+    color: green;
+  }
+
+  border: 1px green solid;
+  background: #f9f9f9;
+  color: #5f5c5c;
+  margin: 16px;
+  padding: 16px;
+  font-size: 20px;
+}
+
+.your-score {
+  color: green;
+  font-size: 20px;
+  margin-bottom: 16px;
+}
+
+material-checkbox.grade {
+  margin: 0 8px;
+  vertical-align: bottom;
+}
+
+.winner {
+  color: maroon;
+  font-size: 24px;
+}
+
+.margin-top {
+  margin-top: 16px;
+}

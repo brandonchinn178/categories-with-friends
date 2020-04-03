@@ -1,3 +1,4 @@
+import 'dart:html';
 import 'dart:async';
 
 import 'package:angular/angular.dart';
@@ -13,7 +14,6 @@ import '../routes.dart';
 
 enum Phase { lobby, inRound, validation, postRound }
 const second = const Duration(seconds: 1);
-const secondsPerRound = 3 * 60; // 3 minutes
 
 @Component(
   selector: 'game',
@@ -80,23 +80,21 @@ class GameComponent implements OnActivate {
   bool get nextRound => _nextRound;
 
   Timer _timer;
+  int _secondsRemaining;
   String _timeRemaining = '';
   String get timeRemaining => _timeRemaining;
 
   List<String> _categories;
   List<String> get categories => _categories;
 
-  bool _submittedAnswers;
-  bool submittedAnswers = false;
+  bool _submittedAnswers = false;
+  bool get submittedAnswers => _submittedAnswers;
 
   Map<String, String> _categoryToAnswer = {};
   Map<String, String> get categoryToAnswer => _categoryToAnswer;
 
   String _letter;
   String get letter => _letter;
-
-  String _endTime;
-  String get endTime => _endTime;
 
   String get gameHomeUrl => _gameId == null
       ? ''
@@ -133,33 +131,43 @@ class GameComponent implements OnActivate {
     _round = value.round;
     _categories = value.categories;
     _letter = value.letter;
-    _endTime = value.endTime;
-    _timeRemaining = _calculateTimeRemaining(secondsPerRound);
+
+    // In case the user reloads the page, calculate the end time.
+    final durationRemaining = value.endTime.difference(DateTime.now().toUtc());
+    _secondsRemaining = durationRemaining.inSeconds;
+
+    if (_secondsRemaining <= 0) {
+      submitAnswers();
+    }
+
+    _timeRemaining = _calculateTimeRemaining();
 
     _categoryToAnswer = Map.fromIterable(_categories, value: (_) => _letter);
 
     _timer = Timer.periodic(second, _updateTimer);
     _submittedAnswers = false;
     _phase = Phase.inRound;
+    _scrollToTop();
   }
 
-  String _calculateTimeRemaining(int secondsLeft) {
-    String _minutesToDisplay = '${(secondsLeft / 60).floor()}';
-    String _secondsToDisplay = '${secondsLeft % 60}';
+  String _calculateTimeRemaining() {
+    String _minutesToDisplay = '${(_secondsRemaining / 60).floor()}';
+    String _secondsToDisplay = '${_secondsRemaining % 60}';
     return '${_minutesToDisplay.padLeft(2, '0')}:${_secondsToDisplay.padLeft(2, '0')}';
   }
 
+  // Called once every second.
   String _updateTimer(Timer timer) {
-    final elapsedSeconds = timer.tick;
-    final secondsLeft = secondsPerRound - elapsedSeconds;
-    _timeRemaining = _calculateTimeRemaining(secondsLeft);
-    if (secondsLeft == 0) {
+    _secondsRemaining--;
+    _timeRemaining = _calculateTimeRemaining();
+    if (_secondsRemaining == 0) {
       timer.cancel();
       submitAnswers();
     }
   }
 
   void _startValidation(StartValidation value) {
+    _round = value.round;
     _playerToCategoryToAnswers = value.playerToCategoryToAnswers;
 
     _playerToCategoryToValid = {};
@@ -174,22 +182,24 @@ class GameComponent implements OnActivate {
     }
 
     _phase = Phase.validation;
+    _scrollToTop();
   }
 
   void _endRound(EndRound value) {
+    _round = value.round;
     _playerToCategoryToGradedAnswers = value.playerToCategoryToGradedAnswers;
     // Temp storage of unsorted map.
     final unsorted = value.playerToScore;
     // Sort the map so that the highest scores come first.
     final sortedKeys = unsorted.keys.toList()
-      ..sort((k1, k2) => unsorted[k1].compareTo(unsorted[k2]));
+      ..sort((k1, k2) => unsorted[k2].compareTo(unsorted[k1]));
     _playerToScore =
         Map.fromIterable(sortedKeys, value: (key) => unsorted[key]);
     _nextRound = value.nextRound;
     _phase = Phase.postRound;
+    _scrollToTop();
   }
 
-  // TODO
   void newGame() {
     _phase = Phase.lobby;
   }
@@ -200,8 +210,9 @@ class GameComponent implements OnActivate {
 
   void startRound() => _apiClient.sendRequest(StartRound.request());
   void submitAnswers() {
+    // Cancel timer in case it wasn't yet.
     _timer.cancel();
-    _timer.cancel();
+
     _submittedAnswers = true;
     // If the user didn't add any input, don't just send the plain letter.
     final filteredAnswers = Map<String, String>.fromIterable(
@@ -213,5 +224,9 @@ class GameComponent implements OnActivate {
 
   void submitValidation() {
     _apiClient.sendRequest(EndRound.request(playerToCategoryToValid));
+  }
+
+  void _scrollToTop() {
+    window.scrollTo(0, 0);
   }
 }
