@@ -5,7 +5,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Scattergories
+module CategoriesWithFriends
   ( ActiveGame
   , initGameWithHost
   , servePlayer
@@ -27,16 +27,16 @@ import Network.WebSockets
     , withPingThread
     )
 
-import Scattergories.ActiveGame (ActiveGame(..))
-import Scattergories.Errors (ServerError(..))
-import Scattergories.Events (Event(..))
-import Scattergories.Game
-import Scattergories.Game.Answer (Answer)
-import Scattergories.Game.Category (Category)
-import Scattergories.Game.Player (PlayerName)
-import Scattergories.Game.Round (GameRoundStatus(..))
-import Scattergories.Logging (debugT)
-import Scattergories.Messages (Message(..))
+import CategoriesWithFriends.ActiveGame (ActiveGame(..))
+import CategoriesWithFriends.Errors (ServerError(..))
+import CategoriesWithFriends.Events (Event(..))
+import CategoriesWithFriends.Game
+import CategoriesWithFriends.Game.Answer (Answer)
+import CategoriesWithFriends.Game.Category (Category)
+import CategoriesWithFriends.Game.Player (PlayerName)
+import CategoriesWithFriends.Game.Round (GameRoundStatus(..))
+import CategoriesWithFriends.Logging (debugT)
+import CategoriesWithFriends.Messages (Message(..))
 
 initGameWithHost :: PlayerName -> IO ActiveGame
 initGameWithHost host = do

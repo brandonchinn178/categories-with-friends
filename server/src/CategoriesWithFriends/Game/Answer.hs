@@ -4,7 +4,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TupleSections #-}
 
-module Scattergories.Game.Answer
+module CategoriesWithFriends.Game.Answer
   ( Answer
   , PlayerAnswers
   , AnswerStatus(..)
@@ -25,8 +25,8 @@ import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 
-import Scattergories.Game.Category (Category)
-import Scattergories.Game.Player (PlayerName)
+import CategoriesWithFriends.Game.Category (Category)
+import CategoriesWithFriends.Game.Player (PlayerName)
 
 type Answer = Text
 type PlayerAnswersMap answers = Map PlayerName (Map Category answers)

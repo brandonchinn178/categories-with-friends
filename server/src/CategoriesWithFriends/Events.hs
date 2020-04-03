@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Scattergories.Events
+module CategoriesWithFriends.Events
   ( Event(..)
   ) where
 
@@ -8,9 +8,9 @@ import Data.Aeson (FromJSON(..), withObject, (.:))
 import Data.Map.Strict (Map)
 import qualified Data.Text as Text
 
-import Scattergories.Game.Answer (Answer)
-import Scattergories.Game.Category (Category)
-import Scattergories.Game.Player (PlayerName)
+import CategoriesWithFriends.Game.Answer (Answer)
+import CategoriesWithFriends.Game.Category (Category)
+import CategoriesWithFriends.Game.Player (PlayerName)
 
 data Event
   = StartRoundEvent

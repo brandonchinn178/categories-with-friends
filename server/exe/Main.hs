@@ -26,9 +26,9 @@ import qualified Data.ByteString.Lazy as ByteStringL
 import Data.FileEmbed (embedFile)
 #endif
 
-import Scattergories (ActiveGame, initGameWithHost, servePlayer)
-import Scattergories.Game.Player (PlayerName)
-import Scattergories.Logging (debugT)
+import CategoriesWithFriends (ActiveGame, initGameWithHost, servePlayer)
+import CategoriesWithFriends.Game.Player (PlayerName)
+import CategoriesWithFriends.Logging (debugT)
 
 type API =
        "game" :> Capture "gameId" Text :> Capture "playerId" PlayerName :> WebSocket

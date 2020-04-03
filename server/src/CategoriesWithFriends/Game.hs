@@ -5,7 +5,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Scattergories.Game
+module CategoriesWithFriends.Game
   ( Game
   , GameStatus(..)
   , GameState(..)
@@ -40,12 +40,12 @@ import qualified Data.Map.Strict as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-import Scattergories.Game.Answer
+import CategoriesWithFriends.Game.Answer
     (AllAnswers, AllRatedAnswers, AnswerRatings, AnswersForPlayer)
-import Scattergories.Game.Player (PlayerName)
-import Scattergories.Game.Round
+import CategoriesWithFriends.Game.Player (PlayerName)
+import CategoriesWithFriends.Game.Round
     (GameRound, GameRoundInfo(roundNum), GameRoundStatus(..), generateRound)
-import qualified Scattergories.Game.Round as Round
+import qualified CategoriesWithFriends.Game.Round as Round
 
 data Game (status :: GameStatus) = Game
   { host       :: PlayerName

@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-module Scattergories.Game.Category
+module CategoriesWithFriends.Game.Category
   ( Category
   , allCategories
   ) where
