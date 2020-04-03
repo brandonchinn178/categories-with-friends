@@ -11,16 +11,21 @@ module AdminAPI
   ) where
 
 import Control.Concurrent.MVar (MVar, readMVar)
-import Control.Monad (unless)
+import Control.Monad (forM_, unless)
 import Control.Monad.IO.Class (liftIO)
+import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
 import Servant
 import Servant.HTML.Blaze (HTML)
 import System.Environment (lookupEnv)
-import Text.Blaze.Html (Markup)
+import Text.Blaze.Html (Markup, (!))
 import qualified Text.Blaze.Html5 as H
+import qualified Text.Blaze.Html5.Attributes as A
+
+import CategoriesWithFriends (ActiveGame(..))
+import qualified CategoriesWithFriends.Game as Game
 
 import Platform (Platform)
 
@@ -30,11 +35,14 @@ data AdminUser = AdminUser
   }
 
 type AdminAPI = BasicAuth "admin site" AdminUser :>
-  ( "admin" :> Get '[HTML] Markup
+  (    "admin" :> Get '[HTML] Markup
+  :<|> "admin" :> Capture "gameId" Text :> Get '[HTML] Markup
   )
 
 serverAdminAPI :: MVar Platform -> Server AdminAPI
-serverAdminAPI platformVar = adminHome platformVar
+serverAdminAPI platformVar adminUser =
+       adminHome platformVar adminUser
+  :<|> adminGame platformVar adminUser
 
 type AdminContext = BasicAuthCheck AdminUser
 
@@ -60,14 +68,53 @@ adminHome platformVar adminUser = do
   platform <- liftIO $ readMVar platformVar
   pure $ renderHome platform adminUser
 
+adminGame :: MVar Platform -> AdminUser -> Text -> Handler Markup
+adminGame platformVar adminUser gameId = do
+  platform <- liftIO $ readMVar platformVar
+  case gameId `Map.lookup` platform of
+    Nothing -> pure $ renderError $ "No game with ID: " <> gameId
+    Just activeGameVar -> do
+      activeGame <- liftIO $ readMVar activeGameVar
+      pure $ renderGame gameId activeGame adminUser
+
 {- Views -}
 
 renderHome :: Platform -> AdminUser -> Markup
-renderHome _ AdminUser{..} = H.docTypeHtml $ do
-  H.head $
-    H.title "Categories With Friends"
+renderHome platform = renderHtml Nothing $ do
+  H.p "Running games:"
+  H.ul $
+    forM_ (Map.keys platform) $ \gameId ->
+      H.li $ H.a ! A.href ("admin/" <> H.textValue gameId) $ H.text gameId
+
+renderGame :: Text -> ActiveGame -> AdminUser -> Markup
+renderGame gameId ActiveGame{..} = renderHtml (Just gameId) $
+  H.table $ do
+    row "ID" $ H.text gameId
+    row "Start time" $ H.toMarkup $ show startTime
+    row "Host" $ H.text $ Game.getHost game
+  where
+    row label body = H.tr $ do
+      H.td label
+      H.td body
+
+      -- TODO
+      -- { host       :: PlayerName
+      -- , players    :: Set PlayerName
+      -- , pastRounds :: [GameRound 'RoundDone]
+      -- , state      :: GameState status
+      -- }
+
+renderError :: Text -> Markup
+renderError msg = H.p $ "Error: " <> H.text msg
+
+renderHtml :: Maybe Text -> Markup -> AdminUser -> Markup
+renderHtml maybeTitle body AdminUser{..} = H.docTypeHtml $ do
+  H.head $ do
+    let titleSuffix = maybe "" ((" – " <>) . H.text) maybeTitle
+    H.title $ "Categories With Friends" <> titleSuffix
   H.body $ do
+    H.h1 "Categories With Friends"
     unless usedPassword $
       H.p $ H.strong "WARNING: admin pages not secured by a password"
 
-    H.p "Hello world!"
+    body

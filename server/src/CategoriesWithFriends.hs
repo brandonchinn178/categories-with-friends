@@ -6,7 +6,7 @@
 {-# LANGUAGE RecordWildCards #-}
 
 module CategoriesWithFriends
-  ( ActiveGame
+  ( ActiveGame(..)
   , initGameWithHost
   , servePlayer
   ) where
