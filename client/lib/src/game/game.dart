@@ -1,3 +1,4 @@
+import 'dart:html';
 import 'dart:async';
 
 import 'package:angular/angular.dart';
@@ -146,6 +147,7 @@ class GameComponent implements OnActivate {
     _timer = Timer.periodic(second, _updateTimer);
     _submittedAnswers = false;
     _phase = Phase.inRound;
+    _scrollToTop();
   }
 
   String _calculateTimeRemaining() {
@@ -180,6 +182,7 @@ class GameComponent implements OnActivate {
     }
 
     _phase = Phase.validation;
+    _scrollToTop();
   }
 
   void _endRound(EndRound value) {
@@ -194,6 +197,7 @@ class GameComponent implements OnActivate {
         Map.fromIterable(sortedKeys, value: (key) => unsorted[key]);
     _nextRound = value.nextRound;
     _phase = Phase.postRound;
+    _scrollToTop();
   }
 
   void newGame() {
@@ -220,5 +224,9 @@ class GameComponent implements OnActivate {
 
   void submitValidation() {
     _apiClient.sendRequest(EndRound.request(playerToCategoryToValid));
+  }
+
+  void _scrollToTop() {
+    window.scrollTo(0, 0);
   }
 }
