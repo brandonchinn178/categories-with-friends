@@ -32,7 +32,7 @@ class ApiClient {
   WebSocket _webSocket;
 
   void init(String gameId, String player) {
-    final protocol = window.location.protocol == 'https' ? 'wss' : 'ws';
+    final protocol = window.location.protocol.contains('https') ? 'wss' : 'ws';
     _webSocket = WebSocket('${protocol}://${apiHost}/game/${gameId}/${player}');
     _webSocket.onMessage.listen((MessageEvent e) => _routeResponse(e.data));
   }
