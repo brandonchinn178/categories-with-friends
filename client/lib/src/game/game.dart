@@ -123,12 +123,14 @@ class GameComponent implements OnActivate {
   }
 
   void _updatePlayerList(PlayerList value) {
+    _clearError();
     _host = value.host;
     _players = value.players;
     _isHost = value.host == _player;
   }
 
   void _startRound(StartRound value) {
+    _clearError();
     _round = value.round;
     _categories = value.categories;
     _letter = value.letter;
@@ -168,6 +170,7 @@ class GameComponent implements OnActivate {
   }
 
   void _startValidation(StartValidation value) {
+    _clearError();
     _round = value.round;
     _playerToCategoryToAnswers = value.playerToCategoryToAnswers;
 
@@ -187,6 +190,7 @@ class GameComponent implements OnActivate {
   }
 
   void _endRound(EndRound value) {
+    _clearError();
     _round = value.round;
     _playerToCategoryToGradedAnswers = value.playerToCategoryToGradedAnswers;
     // Temp storage of unsorted map.
@@ -207,6 +211,10 @@ class GameComponent implements OnActivate {
 
   void _onError(String value) {
     _error = value;
+  }
+
+  void _clearError() {
+    _error = '';
   }
 
   void startRound() => _apiClient.sendRequest(StartRound.request());
