@@ -15,6 +15,7 @@ module CategoriesWithFriends.Game
   , getPlayers
   , getState
   , getScores
+  , getPastRounds
     -- * Current round information
   , HasCurrentRound
   , CurrentRoundStatus
@@ -102,6 +103,9 @@ getScores game = Map.unionsWith (+) $ emptyScores : pastScores
     pastScores = map scoreRound . pastRounds $ game
     scoreRound gameRound = scorePlayer <$> Round.getRatedAnswers gameRound
     scorePlayer = Map.size . Map.filter ((== True) . snd)
+
+getPastRounds :: Game status -> [GameRound 'RoundDone]
+getPastRounds = pastRounds
 
 {- Current round information -}
 
