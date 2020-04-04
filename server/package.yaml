@@ -39,7 +39,9 @@ executable:
   source-dirs: exe
   main: Main.hs
   dependencies:
+    - blaze-html
     - categories-with-friends
+    - servant-blaze
     - servant-server
     - servant-websockets
     - warp

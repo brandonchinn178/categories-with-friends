@@ -6,7 +6,7 @@
 {-# LANGUAGE RecordWildCards #-}
 
 module CategoriesWithFriends
-  ( ActiveGame
+  ( ActiveGame(..)
   , initGameWithHost
   , servePlayer
   ) where
@@ -92,7 +92,7 @@ servePlayer activeGameVar playerName playerConn cleanupGame = do
           Right _ -> runLoop m
 
     stopLoop = modifyMVar_ activeGameVar $ \activeGame -> do
-      debugT $ "Player " ++ show playerName ++ "disconnected"
+      debugT $ "Player " ++ show playerName ++ " disconnected"
       let updatedPlayerConns = Map.delete playerName (playerConns activeGame)
       when (Map.null updatedPlayerConns) cleanupGame
       return $ activeGame { playerConns = updatedPlayerConns }

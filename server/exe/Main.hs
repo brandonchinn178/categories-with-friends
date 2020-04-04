@@ -1,17 +1,9 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 
-#ifdef __SERVE_STATIC__
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
-#endif
-
 import Control.Concurrent.MVar (MVar, modifyMVar, modifyMVar_, newMVar)
 import Control.Monad.IO.Class (liftIO)
-import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import Network.Wai.Handler.Warp (run)
@@ -20,40 +12,40 @@ import Servant
 import Servant.API.WebSocket (WebSocket)
 import System.Environment (lookupEnv)
 
-#ifdef __SERVE_STATIC__
-import Data.ByteString (ByteString)
-import qualified Data.ByteString.Lazy as ByteStringL
-import Data.FileEmbed (embedFile)
-#endif
-
 import CategoriesWithFriends (ActiveGame, initGameWithHost, servePlayer)
 import CategoriesWithFriends.Game.Player (PlayerName)
 import CategoriesWithFriends.Logging (debugT)
 
+import AdminAPI (AdminAPI, AdminContext, initAdminContext, serverAdminAPI)
+import Platform (Platform)
+import StaticAPI (StaticAPI, serverStaticAPI)
+
 type API =
        "game" :> Capture "gameId" Text :> Capture "playerId" PlayerName :> WebSocket
+  :<|> AdminAPI
   :<|> StaticAPI
 
 main :: IO ()
 main = do
   platformVar <- newMVar Map.empty
   port <- maybe 8000 read <$> lookupEnv "PORT"
+  adminCtx <- initAdminContext
 
   putStrLn $ "Running on port " ++ show port
-  run port $ app platformVar
+  run port $ app platformVar adminCtx
 
-app :: MVar Platform -> Application
-app platformVar = serve (Proxy @API) $ serverAPI platformVar
+app :: MVar Platform -> AdminContext -> Application
+app platformVar adminCtx = serveWithContext (Proxy @API) ctx $ serverAPI platformVar
+  where
+    ctx = adminCtx :. EmptyContext
 
 serverAPI :: MVar Platform -> Server API
 serverAPI platformVar =
        serveGame platformVar
+  :<|> serverAdminAPI platformVar
   :<|> serverStaticAPI
 
 {- Serve websocket game -}
-
--- | The state of the platform, mapping game identifiers to Game.
-type Platform = Map Text (MVar ActiveGame)
 
 serveGame :: MVar Platform -> Text -> PlayerName -> Connection -> Handler ()
 serveGame platformVar gameId playerName playerConn = liftIO $ do
@@ -77,39 +69,3 @@ cleanupGame :: MVar Platform -> Text -> IO ()
 cleanupGame platformVar gameId = do
   modifyMVar_ platformVar $ pure . Map.delete gameId
   debugT $ "Game " ++ show gameId ++ " cleaned up"
-
-{- Serving static files -}
-
-#ifdef __SERVE_STATIC__
-data HTML
-
-instance Accept HTML where
-  contentType _ = "text/html"
-
-instance MimeRender HTML ByteString where
-  mimeRender _ = ByteStringL.fromStrict
-
-type StaticAPI =
-       "static" :> Raw
-  :<|> "game" :> Capture "gameId" Text :> Capture "playerId" PlayerName :> Get '[HTML] ByteString
-  :<|> "game" :> Capture "gameId" Text :> Get '[HTML] ByteString
-  :<|> Get '[HTML] ByteString
-
-serverStaticAPI :: Server StaticAPI
-serverStaticAPI =
-       serveStatic
-  :<|> (\_ _ -> serveHTML)
-  :<|> (\_ -> serveHTML)
-  :<|> serveHTML
-
-serveHTML :: Handler ByteString
-serveHTML = pure $(embedFile "../public/index.html")
-
-serveStatic :: Server Raw
-serveStatic = serveDirectoryFileServer "./public"
-#else
-type StaticAPI = EmptyAPI
-
-serverStaticAPI :: Server StaticAPI
-serverStaticAPI = emptyServer
-#endif
