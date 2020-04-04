@@ -96,9 +96,10 @@ class GameComponent implements OnActivate {
   String _letter;
   String get letter => _letter;
 
+  // TODO: Remove hash if we switch to non-hash location strategy.
   String get gameHomeUrl => _gameId == null
       ? ''
-      : '${_uri.origin}${RoutePaths.gameHome.toUrl(parameters: {
+      : '${_uri.origin}/#${RoutePaths.gameHome.toUrl(parameters: {
           gameIdParam: _gameId
         })}';
 
