@@ -145,7 +145,7 @@ class GameComponent implements OnActivate {
 
     _timeRemaining = _calculateTimeRemaining();
 
-    _categoryToAnswer = Map.fromIterable(_categories, value: (_) => _letter);
+    _categoryToAnswer = Map.fromIterable(_categories, value: (_) => '');
 
     _timer = Timer.periodic(second, _updateTimer);
     _submittedAnswers = false;
@@ -223,12 +223,7 @@ class GameComponent implements OnActivate {
     _timer.cancel();
 
     _submittedAnswers = true;
-    // If the user didn't add any input, don't just send the plain letter.
-    final filteredAnswers = Map<String, String>.fromIterable(
-        categoryToAnswer.entries,
-        key: (entry) => entry.key,
-        value: (entry) => entry.value == _letter ? '' : entry.value);
-    _apiClient.sendRequest(StartValidation.request(filteredAnswers));
+    _apiClient.sendRequest(StartValidation.request(categoryToAnswer));
   }
 
   void submitValidation() {
