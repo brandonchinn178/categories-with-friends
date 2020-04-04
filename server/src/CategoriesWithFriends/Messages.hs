@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Scattergories.Messages
+module CategoriesWithFriends.Messages
   ( Message(..)
   ) where
 
@@ -11,18 +11,18 @@ import Data.Aeson (ToJSON(..), object, (.=))
 import Data.Map.Strict (Map)
 import Data.Time (defaultTimeLocale, formatTime, iso8601DateFormat)
 
-import Scattergories.Game.Answer (AllAnswers, AllRatedAnswers)
-import Scattergories.Game.Player (PlayerName)
-import Scattergories.Game.Round (GameRoundInfo(..))
+import CategoriesWithFriends.Game.Answer (AllAnswers, AllRatedAnswers)
+import CategoriesWithFriends.Game.Player (PlayerName)
+import CategoriesWithFriends.Game.Round (GameRoundInfo(..))
 
 data Message
   = RefreshPlayerListMessage PlayerName [PlayerName]
     -- ^ send the current host and player list to everyone
   | StartRoundMessage GameRoundInfo
     -- ^ send information to start a round
-  | StartValidationMessage AllAnswers
+  | StartValidationMessage GameRoundInfo AllAnswers
     -- ^ send everyone's answers so the host can validate
-  | EndRoundMessage AllRatedAnswers (Map PlayerName Int) Bool
+  | EndRoundMessage GameRoundInfo AllRatedAnswers (Map PlayerName Int) Bool
     -- ^ send the results of the game so far
 
 instance Show Message where
@@ -47,11 +47,13 @@ instance ToJSON Message where
           , "letter" .= letter
           , "end_time" .= formatISO8601 deadline
           ]
-        StartValidationMessage answers ->
-          [ "answers" .= answers
+        StartValidationMessage info answers ->
+          [ "round_num" .= roundNum info
+          , "answers" .= answers
           ]
-        EndRoundMessage answers scores nextRound ->
-          [ "answers" .= answers
+        EndRoundMessage info answers scores nextRound ->
+          [ "round_num" .= roundNum info
+          , "answers" .= answers
           , "scores" .= scores
           , "next_round" .= nextRound
           ]

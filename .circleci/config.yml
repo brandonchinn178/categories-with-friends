@@ -75,21 +75,21 @@ jobs:
       # Build backend
       - run:
           name: Build backend
-          command: stack build --flag scattergories:serve_static --copy-bins
+          command: stack build --flag categories-with-friends:serve_static --copy-bins
       - run:
           name: Bundle application
           command: |
-            tar czf scattergories.tar.gz \
+            tar czf categories-with-friends.tar.gz \
               public/ \
-              -C ~/.local/bin/ scattergories
+              -C ~/.local/bin/ categories-with-friends
 
       # Store artifacts
       - persist_to_workspace:
           root: .
           paths:
-            - scattergories.tar.gz
+            - categories-with-friends.tar.gz
       - store_artifacts:
-          path: scattergories.tar.gz
+          path: categories-with-friends.tar.gz
 
       # Run linting
       - run: scripts/run-hlint.sh
@@ -106,10 +106,10 @@ jobs:
       # TODO: better tests
       - run:
           name: Unpack application
-          command: tar xzf scattergories.tar.gz
+          command: tar xzf categories-with-friends.tar.gz
       - run:
-          name: Run scattergories
-          command: ./scattergories
+          name: Run categories-with-friends
+          command: ./categories-with-friends
           background: true
       - run:
           name: Test that server is running
@@ -121,6 +121,31 @@ jobs:
             head main.dart.js
             grep -q 'function dartProgram()' main.dart.js
 
+  deploy:
+    docker:
+      - image: cimg/base:2019.07
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+
+      - run:
+          name: Deploy to Heroku
+          command: |
+            mkdir -p /heroku-repo
+            tar xzf categories-with-friends.tar.gz -C /heroku-repo
+            cp Procfile /heroku-repo
+            cd /heroku-repo
+
+            git init
+            git config user.email "${GIT_EMAIL}"
+            git config user.name "${GIT_NAME}"
+            git add .
+            git commit -am "Deploy: ${CIRCLE_SHA1} (build #${CIRCLE_BUILD_NUM})"
+
+            HEROKU_GIT_REPO=https://heroku:${HEROKU_API_KEY}@git.heroku.com/categories-with-friends.git
+            git push -f "${HEROKU_GIT_REPO}" HEAD:master
+
 workflows:
   build_and_test:
     jobs:
@@ -131,3 +156,9 @@ workflows:
       - test_backend:
           requires:
             - build_backend
+      - deploy:
+          requires:
+            - test_backend
+          filters:
+            branches:
+              only: master

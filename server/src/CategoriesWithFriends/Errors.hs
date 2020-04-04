@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Scattergories.Errors
+module CategoriesWithFriends.Errors
   ( ServerError(..)
   ) where
 

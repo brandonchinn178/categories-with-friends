@@ -49,7 +49,7 @@ else
     TMPFILE="$(mktemp)"
     for FILE in "${FILES[@]}"; do
         # See comments in file
-        if [[ "${FILE}" == */Scattergories/ActiveGame.hs ]]; then
+        if [[ "${FILE}" == */CategoriesWithFriends/ActiveGame.hs ]]; then
             continue
         fi
 

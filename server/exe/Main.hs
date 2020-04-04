@@ -18,6 +18,7 @@ import Network.Wai.Handler.Warp (run)
 import Network.WebSockets (Connection)
 import Servant
 import Servant.API.WebSocket (WebSocket)
+import System.Environment (lookupEnv)
 
 #ifdef __SERVE_STATIC__
 import Data.ByteString (ByteString)
@@ -25,9 +26,9 @@ import qualified Data.ByteString.Lazy as ByteStringL
 import Data.FileEmbed (embedFile)
 #endif
 
-import Scattergories (ActiveGame, initGameWithHost, servePlayer)
-import Scattergories.Game.Player (PlayerName)
-import Scattergories.Logging (debugT)
+import CategoriesWithFriends (ActiveGame, initGameWithHost, servePlayer)
+import CategoriesWithFriends.Game.Player (PlayerName)
+import CategoriesWithFriends.Logging (debugT)
 
 type API =
        "game" :> Capture "gameId" Text :> Capture "playerId" PlayerName :> WebSocket
@@ -36,11 +37,10 @@ type API =
 main :: IO ()
 main = do
   platformVar <- newMVar Map.empty
+  port <- maybe 8000 read <$> lookupEnv "PORT"
 
   putStrLn $ "Running on port " ++ show port
   run port $ app platformVar
-  where
-    port = 8000
 
 app :: MVar Platform -> Application
 app platformVar = serve (Proxy @API) $ serverAPI platformVar
@@ -74,8 +74,9 @@ loadOrCreateGame platformVar gameId playerName =
 
 -- | Clean up the given game.
 cleanupGame :: MVar Platform -> Text -> IO ()
-cleanupGame platformVar gameId =
+cleanupGame platformVar gameId = do
   modifyMVar_ platformVar $ pure . Map.delete gameId
+  debugT $ "Game " ++ show gameId ++ " cleaned up"
 
 {- Serving static files -}
 

@@ -2,10 +2,10 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Scattergories.Game
+module CategoriesWithFriends.Game
   ( Game
   , GameStatus(..)
   , GameState(..)
@@ -21,7 +21,8 @@ module Scattergories.Game
   , getAnswers
   , getRatedAnswers
     -- * Initializing a game
-  , createGame
+  , initGame
+  , resetGame
   , initPlayer
     -- * Starting a round
   , startRound
@@ -39,12 +40,12 @@ import qualified Data.Map.Strict as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-import Scattergories.Game.Answer
+import CategoriesWithFriends.Game.Answer
     (AllAnswers, AllRatedAnswers, AnswerRatings, AnswersForPlayer)
-import Scattergories.Game.Player (PlayerName)
-import Scattergories.Game.Round
+import CategoriesWithFriends.Game.Player (PlayerName)
+import CategoriesWithFriends.Game.Round
     (GameRound, GameRoundInfo(roundNum), GameRoundStatus(..), generateRound)
-import qualified Scattergories.Game.Round as Round
+import qualified CategoriesWithFriends.Game.Round as Round
 
 data Game (status :: GameStatus) = Game
   { host       :: PlayerName
@@ -136,14 +137,17 @@ instance HasCurrentRound 'GameDone where
 
 {- Initializing a game -}
 
--- | Create a new game with the given player as the host.
-createGame :: PlayerName -> Game 'GameLoading
-createGame host = Game
-  { host
-  , players = Set.singleton host
-  , pastRounds = []
-  , state = GameCreated
-  }
+-- | Initialize an empty game with the given player as the host.
+initGame :: PlayerName -> Game 'GameLoading
+initGame host = initGame' host $ Set.singleton host
+
+-- | Reset a finished game.
+resetGame :: Game 'GameDone -> Game 'GameLoading
+resetGame Game{..} = initGame' host players
+
+-- | Create a new game with the given host and players.
+initGame' :: PlayerName -> Set PlayerName -> Game 'GameLoading
+initGame' host players = Game { pastRounds = [], state = GameCreated, .. }
 
 -- | Add the given player to the game.
 --
