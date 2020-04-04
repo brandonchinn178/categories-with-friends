@@ -8,7 +8,7 @@ import 'src/routes.dart';
   template: '''
     <h1 class="master-title">
       <a [routerLink]="RoutePaths.root.toUrl()"
-         [routerLinkActive]="'active-route'">Generic Category Game</a>
+         [routerLinkActive]="'active-route'">Categories With Friends</a>
     </h1>
     <router-outlet [routes]="Routes.all"></router-outlet>
   ''',

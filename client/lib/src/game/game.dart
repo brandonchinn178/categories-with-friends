@@ -96,9 +96,10 @@ class GameComponent implements OnActivate {
   String _letter;
   String get letter => _letter;
 
+  // TODO: Remove hash if we switch to non-hash location strategy.
   String get gameHomeUrl => _gameId == null
       ? ''
-      : '${_uri.origin}${RoutePaths.gameHome.toUrl(parameters: {
+      : '${_uri.origin}/#${RoutePaths.gameHome.toUrl(parameters: {
           gameIdParam: _gameId
         })}';
 
@@ -122,12 +123,14 @@ class GameComponent implements OnActivate {
   }
 
   void _updatePlayerList(PlayerList value) {
+    _clearError();
     _host = value.host;
     _players = value.players;
     _isHost = value.host == _player;
   }
 
   void _startRound(StartRound value) {
+    _clearError();
     _round = value.round;
     _categories = value.categories;
     _letter = value.letter;
@@ -142,7 +145,7 @@ class GameComponent implements OnActivate {
 
     _timeRemaining = _calculateTimeRemaining();
 
-    _categoryToAnswer = Map.fromIterable(_categories, value: (_) => _letter);
+    _categoryToAnswer = Map.fromIterable(_categories, value: (_) => '');
 
     _timer = Timer.periodic(second, _updateTimer);
     _submittedAnswers = false;
@@ -167,6 +170,7 @@ class GameComponent implements OnActivate {
   }
 
   void _startValidation(StartValidation value) {
+    _clearError();
     _round = value.round;
     _playerToCategoryToAnswers = value.playerToCategoryToAnswers;
 
@@ -186,6 +190,7 @@ class GameComponent implements OnActivate {
   }
 
   void _endRound(EndRound value) {
+    _clearError();
     _round = value.round;
     _playerToCategoryToGradedAnswers = value.playerToCategoryToGradedAnswers;
     // Temp storage of unsorted map.
@@ -208,18 +213,17 @@ class GameComponent implements OnActivate {
     _error = value;
   }
 
+  void _clearError() {
+    _error = '';
+  }
+
   void startRound() => _apiClient.sendRequest(StartRound.request());
   void submitAnswers() {
     // Cancel timer in case it wasn't yet.
     _timer.cancel();
 
     _submittedAnswers = true;
-    // If the user didn't add any input, don't just send the plain letter.
-    final filteredAnswers = Map<String, String>.fromIterable(
-        categoryToAnswer.entries,
-        key: (entry) => entry.key,
-        value: (entry) => entry.value == _letter ? '' : entry.value);
-    _apiClient.sendRequest(StartValidation.request(filteredAnswers));
+    _apiClient.sendRequest(StartValidation.request(categoryToAnswer));
   }
 
   void submitValidation() {
