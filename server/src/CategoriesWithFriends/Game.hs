@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module CategoriesWithFriends.Game
@@ -94,8 +95,11 @@ getState :: Game status -> GameState status
 getState = state
 
 getScores :: Game status -> Map PlayerName Int
-getScores = Map.unionsWith (+) . map scoreRound . pastRounds
+getScores game = Map.unionsWith (+) $ emptyScores : pastScores
   where
+    -- in case no rounds have been played
+    emptyScores = Map.fromList . map (, 0) . getPlayers $ game
+    pastScores = map scoreRound . pastRounds $ game
     scoreRound gameRound = scorePlayer <$> Round.getRatedAnswers gameRound
     scorePlayer = Map.size . Map.filter ((== True) . snd)
 
