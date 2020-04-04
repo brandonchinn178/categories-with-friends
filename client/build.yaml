@@ -2,8 +2,3 @@ targets:
   $default:
     sources:
       include: ["lib/**", "web/**"]
-    builders:
-      build_web_compilers|entrypoint:
-        release_options:
-         dart2js_args:
-           - -DapiHost=

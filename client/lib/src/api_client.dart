@@ -9,8 +9,7 @@ import 'api_classes.dart';
 // when using dartdevc, but dartdevc doesn't support setting environment
 // variables
 // https://stackoverflow.com/a/51893647
-final apiHost =
-    const String.fromEnvironment('apiHost', defaultValue: 'localhost:8000');
+final apiHost = window.location.hostname;
 
 @Injectable()
 class ApiClient {
