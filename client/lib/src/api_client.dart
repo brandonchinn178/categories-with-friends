@@ -5,14 +5,10 @@ import 'package:angular/di.dart';
 import 'package:quiver/strings.dart';
 import 'api_classes.dart';
 
-// It would be better if the environment variable could be set in development
-// when using dartdevc, but dartdevc doesn't support setting environment
-// variables
-// https://stackoverflow.com/a/51893647
-final apiHost = window.location.hostname;
-
 @Injectable()
 class ApiClient {
+  final apiHost = window.location.hostname;
+
   final _onPlayerList = StreamController<PlayerList>.broadcast();
   Stream<PlayerList> get onPlayerList => _onPlayerList.stream;
 
