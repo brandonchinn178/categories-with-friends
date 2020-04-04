@@ -5,15 +5,10 @@ import 'package:angular/di.dart';
 import 'package:quiver/strings.dart';
 import 'api_classes.dart';
 
-// It would be better if the environment variable could be set in development
-// when using dartdevc, but dartdevc doesn't support setting environment
-// variables
-// https://stackoverflow.com/a/51893647
-final apiHost =
-    const String.fromEnvironment('apiHost', defaultValue: 'localhost:8000');
-
 @Injectable()
 class ApiClient {
+  final apiHost = window.location.hostname;
+
   final _onPlayerList = StreamController<PlayerList>.broadcast();
   Stream<PlayerList> get onPlayerList => _onPlayerList.stream;
 
@@ -32,7 +27,7 @@ class ApiClient {
   WebSocket _webSocket;
 
   void init(String gameId, String player) {
-    final protocol = window.location.protocol == 'https' ? 'wss' : 'ws';
+    final protocol = window.location.protocol.contains('https') ? 'wss' : 'ws';
     _webSocket = WebSocket('${protocol}://${apiHost}/game/${gameId}/${player}');
     _webSocket.onMessage.listen((MessageEvent e) => _routeResponse(e.data));
   }
