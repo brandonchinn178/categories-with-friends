@@ -143,7 +143,7 @@ jobs:
             git add .
             git commit -am "Deploy: ${CIRCLE_SHA1} (build #${CIRCLE_BUILD_NUM})"
 
-            HEROKU_GIT_REPO=https://heroku:${HEROKU_API_KEY}@git.heroku.com/categories-with-friends.git
+            HEROKU_GIT_REPO=https://heroku:${HEROKU_API_KEY}@git.heroku.com/${HEROKU_APP_NAME}.git
             git push -f "${HEROKU_GIT_REPO}" HEAD:master
 
 workflows:
