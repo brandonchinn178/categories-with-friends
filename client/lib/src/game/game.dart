@@ -96,6 +96,11 @@ class GameComponent implements OnActivate {
   String _letter;
   String get letter => _letter;
 
+  // Links to Google search.
+  Uri _googleUrl(String answer) =>
+      Uri(scheme: 'https', host: 'google.com', queryParameters: {'q': answer});
+  String googleUrl(String answer) => '${_googleUrl(answer)}';
+
   // TODO: Remove hash if we switch to non-hash location strategy.
   String get gameHomeUrl => _gameId == null
       ? ''

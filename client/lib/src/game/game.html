@@ -59,6 +59,10 @@
             [(ngModel)]="playerToCategoryToValid[player][category]"
             [disabled]="!isHost">
           </material-checkbox>
+          <!-- Link to google search -->
+          <a [href]="googleUrl(answer(player,category))" target="_blank">
+            <material-icon icon="search"></material-icon>
+          </a>
         </div>
       </div>
     </ng-container>
