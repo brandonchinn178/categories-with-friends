@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:angular/angular.dart';
 import 'package:angular_router/angular_router.dart';
 import 'package:angular_components/material_checkbox/material_checkbox.dart';
+import 'package:angular_components/material_icon/material_icon.dart';
 import 'package:angular_components/material_input/material_input.dart';
 import 'package:angular_components/material_button/material_button.dart';
 import 'package:quiver/strings.dart';
@@ -23,6 +24,7 @@ const second = const Duration(seconds: 1);
     materialInputDirectives,
     MaterialButtonComponent,
     MaterialCheckboxComponent,
+    MaterialIconComponent,
     NgIf,
     NgFor
   ],
@@ -95,6 +97,14 @@ class GameComponent implements OnActivate {
 
   String _letter;
   String get letter => _letter;
+
+  // Links to Google search.
+  Uri _googleUrl(String answer) => Uri(
+      scheme: 'https',
+      host: 'google.com',
+      path: 'search',
+      queryParameters: {'q': answer});
+  String googleUrl(String answer) => '${_googleUrl(answer)}';
 
   // TODO: Remove hash if we switch to non-hash location strategy.
   String get gameHomeUrl => _gameId == null
