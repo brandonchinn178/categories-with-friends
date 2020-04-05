@@ -60,7 +60,8 @@
             [disabled]="!isHost">
           </material-checkbox>
           <!-- Link to google search -->
-          <a [href]="googleUrl(answer(player,category))" target="_blank">
+          <a [href]="googleUrl(answer(player,category))" target="_blank"
+                     class="google-link">
             <material-icon icon="search"></material-icon>
           </a>
         </div>

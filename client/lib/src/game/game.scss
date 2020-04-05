@@ -1,11 +1,12 @@
 .grid {
   align-items: center;
   display: grid;
-  grid-template-columns: 200px auto;
+  grid-template-columns: 40% auto;
   grid-gap: 8px;
 
   material-input {
     margin-top: 8px;
+    width: 100%;
   }
 }
 
@@ -41,6 +42,8 @@ material-button.btn {
   padding: 32px;
   position: fixed;
   right: 32px;
+  top: 32px;
+  z-index: 1;
 }
   
 .title {
@@ -67,7 +70,7 @@ material-button.btn {
 }
 
 material-checkbox.grade {
-  margin: 0 8px;
+  margin: 0 0 0 16px;
   vertical-align: bottom;
 }
 
@@ -78,4 +81,12 @@ material-checkbox.grade {
 
 .margin-top {
   margin-top: 16px;
+}
+
+.google-link {
+  text-decoration: none;
+
+  material-icon {
+    vertical-align: bottom;
+  }
 }

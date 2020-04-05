@@ -8,6 +8,8 @@ import 'api_classes.dart';
 @Injectable()
 class ApiClient {
   final apiHost = window.location.hostname;
+  // Locally use 8000, otherwise when deployed we don't need port.
+  String get _apiPort => apiHost == 'localhost' ? ':8000' : '';
 
   final _onPlayerList = StreamController<PlayerList>.broadcast();
   Stream<PlayerList> get onPlayerList => _onPlayerList.stream;
@@ -28,7 +30,8 @@ class ApiClient {
 
   void init(String gameId, String player) {
     final protocol = window.location.protocol.contains('https') ? 'wss' : 'ws';
-    _webSocket = WebSocket('${protocol}://${apiHost}/game/${gameId}/${player}');
+    _webSocket = WebSocket(
+        '${protocol}://${apiHost}${_apiPort}/game/${gameId}/${player}');
     _webSocket.onMessage.listen((MessageEvent e) => _routeResponse(e.data));
   }
 
