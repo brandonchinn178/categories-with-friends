@@ -85,6 +85,7 @@ servePlayer activeGameVar playerName playerConn cleanupGame = do
         else try m >>= \case
           Left e -> case fromException e of
             Just CloseRequest{} -> stopLoop
+            Just ConnectionClosed{} -> stopLoop
             _ -> do
               let serverErr = fromMaybe (UnexpectedServerError e) (fromException e)
               sendJSONData playerConn serverErr
