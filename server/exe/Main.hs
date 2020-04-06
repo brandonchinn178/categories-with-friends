@@ -7,8 +7,10 @@ import Control.Concurrent.MVar
     (MVar, modifyMVar, modifyMVar_, newMVar, readMVar)
 import Control.Monad (forM_, forever, void, (>=>))
 import Control.Monad.IO.Class (liftIO)
+import Data.Char (toUpper)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Network.Wai.Handler.Warp (run)
 import Network.WebSockets (Connection, ConnectionException(ConnectionClosed))
 import Servant
@@ -67,10 +69,12 @@ serverAPI platformVar =
 {- Serve websocket game -}
 
 serveGame :: MVar Platform -> Text -> PlayerName -> Connection -> Handler ()
-serveGame platformVar gameId playerName playerConn = liftIO $ do
+serveGame platformVar gameId' playerName playerConn = liftIO $ do
   debugT $ "Got connection from " ++ show playerName ++ " (game: " ++ show gameId ++ ")"
   activeGameVar <- loadOrCreateGame platformVar gameId playerName
   servePlayer activeGameVar playerName playerConn (cleanupGame platformVar gameId)
+  where
+    gameId = Text.map toUpper gameId'
 
 -- | Loads the game with the given ID. If no game is found, create a game with the given player
 -- as the host.

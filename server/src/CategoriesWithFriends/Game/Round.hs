@@ -17,7 +17,7 @@ module CategoriesWithFriends.Game.Round
   , rateAnswers
   ) where
 
-import Control.Monad.Random (getRandomR)
+import Control.Monad.Random (uniform)
 import Data.Time (UTCTime, addUTCTime, getCurrentTime)
 import System.Random.Shuffle (shuffleM)
 
@@ -72,7 +72,7 @@ getRatedAnswers = Answer.getRatedAnswers . answers
 generateRound :: [PlayerName] -> Int -> IO (GameRound 'RoundBeingAnswered)
 generateRound players roundNum = do
   categories <- take numCategories <$> shuffleM allCategories
-  letter <- getRandomR ('A', 'Z')
+  letter <- uniform allLetters
   deadline <- addUTCTime roundDuration <$> getCurrentTime
 
   return GameRound
@@ -82,6 +82,36 @@ generateRound players roundNum = do
   where
     numCategories = 12
     roundDuration = 3 * 60 -- 3 minutes
+
+    -- Scattergories excludes letters: Q U V X Y Z
+    allLetters =
+      [ 'A'
+      , 'B'
+      , 'C'
+      , 'D'
+      , 'E'
+      , 'F'
+      , 'G'
+      , 'H'
+      , 'I'
+      , 'J'
+      , 'K'
+      , 'L'
+      , 'M'
+      , 'N'
+      , 'O'
+      , 'P'
+      -- , 'Q'
+      , 'R'
+      , 'X'
+      , 'T'
+      -- , 'U'
+      , 'V'
+      , 'W'
+      -- , 'X'
+      -- , 'Y'
+      -- , 'Z'
+      ]
 
 -- | Add the given answers for the given player.
 addAnswers
