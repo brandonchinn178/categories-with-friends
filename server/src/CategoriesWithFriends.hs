@@ -4,13 +4,16 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TupleSections #-}
 
 module CategoriesWithFriends
   ( ActiveGame(..)
+  , hasTimedOut
   , initGameWithHost
   , servePlayer
   ) where
 
+import Control.Concurrent (myThreadId)
 import Control.Concurrent.MVar (MVar, modifyMVar_, readMVar)
 import Control.Exception (fromException, throwIO, try)
 import Control.Monad (forM_, unless, when)
@@ -43,7 +46,7 @@ initGameWithHost host = do
   now <- getCurrentTime
   return ActiveGame
     { game = initGame host
-    , playerConns = Map.empty
+    , playerState = Map.empty
     , startTime = now
     }
 
@@ -94,14 +97,15 @@ servePlayer activeGameVar playerName playerConn cleanupGame = do
 
     stopLoop = modifyMVar_ activeGameVar $ \activeGame -> do
       debugT $ "Player " ++ show playerName ++ " disconnected"
-      let updatedPlayerConns = Map.delete playerName (playerConns activeGame)
-      when (Map.null updatedPlayerConns) cleanupGame
-      return $ activeGame { playerConns = updatedPlayerConns }
+      let updatedPlayerState = Map.delete playerName (playerState activeGame)
+      when (Map.null updatedPlayerState) cleanupGame
+      return $ activeGame { playerState = updatedPlayerState }
 
-    hasTimedOut ActiveGame{startTime} = do
-      now <- getCurrentTime
-      let timeout = 3600 -- 1 hour
-      return $ addUTCTime timeout startTime < now
+hasTimedOut :: ActiveGame -> IO Bool
+hasTimedOut ActiveGame{startTime} = do
+  now <- getCurrentTime
+  let timeout = 3600 -- 1 hour
+  return $ addUTCTime timeout startTime < now
 
 {- Game mechanics -}
 
@@ -120,11 +124,12 @@ setupPlayer playerName playerConn activeGame = do
     GameRoundFinished{} -> refreshPlayerState game endRoundMessage
     GameFinished{} -> refreshPlayerState game endRoundMessage
 
+  state <- (playerConn,) <$> myThreadId
   return updatedActiveGame
-    { playerConns = Map.insert playerName playerConn $ playerConns activeGame
+    { playerState = Map.insert playerName state $ playerState activeGame
     }
   where
-    isPlayerAlreadyConnected = playerName `Map.member` playerConns activeGame
+    isPlayerAlreadyConnected = playerName `Map.member` playerState activeGame
     throwCannotJoin = throwIO . CannotJoinGameError
 
     addPlayerToGame :: Game 'GameLoading -> IO ActiveGame
@@ -211,7 +216,7 @@ setGame updatedGame ActiveGame{..} = ActiveGame { game = updatedGame, .. }
 setGameAndMessageAll :: Game status -> (Game status -> Message) -> ActiveGame -> IO ActiveGame
 setGameAndMessageAll updatedGame mkMessage activeGame = do
   debugT $ "Sending message to all players: " ++ show message
-  forM_ (Map.elems $ playerConns activeGame) $ \conn ->
+  forM_ (Map.elems $ playerState activeGame) $ \(conn, _) ->
     sendJSONData conn message
 
   return $ setGame updatedGame activeGame
