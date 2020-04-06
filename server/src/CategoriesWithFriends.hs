@@ -1,6 +1,5 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -14,8 +13,8 @@ module CategoriesWithFriends
   ) where
 
 import Control.Concurrent (myThreadId)
-import Control.Concurrent.MVar (MVar, modifyMVar_, readMVar)
-import Control.Exception (fromException, throwIO, try)
+import Control.Concurrent.MVar (MVar, modifyMVar_)
+import Control.Exception (fromException, handle, throwIO)
 import Control.Monad (forM_, unless, when)
 import Data.Aeson (FromJSON, ToJSON, eitherDecode', encode)
 import Data.Map.Strict (Map)
@@ -51,20 +50,21 @@ initGameWithHost host = do
     }
 
 servePlayer :: MVar ActiveGame -> PlayerName -> Connection -> IO () -> IO ()
-servePlayer activeGameVar playerName playerConn cleanupGame = do
-  modifyMVar_ activeGameVar $ setupPlayer playerName playerConn
+servePlayer activeGameVar playerName playerConn cleanupGame =
+  handle (sendErrorToClientThen $ pure ()) $ do
+    modifyMVar_ activeGameVar $ setupPlayer playerName playerConn
 
-  withPingThread playerConn pingDelay postPing $ runLoop $ do
-    event <- receiveJSONData playerConn
-    debugT $ "Player " ++ show playerName ++ " sent: " ++ show event
+    withPingThread playerConn pingDelay postPing $ runLoop $ do
+      event <- receiveJSONData playerConn
+      debugT $ "Player " ++ show playerName ++ " sent: " ++ show event
 
-    case event of
-      StartRoundEvent ->
-        handleEventOnlyHost startGameRound
-      SubmitAnswersEvent playerAnswers ->
-        handleEvent $ registerAnswers playerName playerAnswers
-      EndValidationEvent ratings ->
-        handleEventOnlyHost $ registerRatings ratings
+      case event of
+        StartRoundEvent ->
+          handleEventOnlyHost startGameRound
+        SubmitAnswersEvent playerAnswers ->
+          handleEvent $ registerAnswers playerName playerAnswers
+        EndValidationEvent ratings ->
+          handleEventOnlyHost $ registerRatings ratings
   where
     pingDelay = 30 -- seconds
     postPing = return ()
@@ -81,21 +81,27 @@ servePlayer activeGameVar playerName playerConn cleanupGame = do
     --   2. Game has run for too long
     --
     -- Any other errors are sent to the client
-    runLoop m = do
-      shouldCleanUp <- readMVar activeGameVar >>= hasTimedOut
-      if shouldCleanUp
-        then stopLoop
-        else try m >>= \case
-          Left e -> case fromException e of
-            Just CloseRequest{} -> stopLoop
-            Just ConnectionClosed{} -> stopLoop
-            _ -> do
-              let serverErr = fromMaybe (UnexpectedServerError e) (fromException e)
-              sendJSONData playerConn serverErr
-              runLoop m
-          Right _ -> runLoop m
+    runLoop m =
+      let go = handle (sendErrorToClientThen go) (m >> go)
+      in go
 
-    stopLoop = modifyMVar_ activeGameVar $ \activeGame -> do
+    -- | Send the given exception back to the client, then run the given callback.
+    -- If the exception indicates that the connection should be closed, clean
+    -- up the player and don't run the callback.
+    sendErrorToClientThen onError e
+      | isCloseRequest e = cleanupPlayer
+      | otherwise = do
+          let serverErr = fromMaybe (UnexpectedServerError e) (fromException e)
+          sendJSONData playerConn serverErr
+          onError
+
+    isCloseRequest e =
+      case fromException e of
+        Just CloseRequest{} -> True
+        Just ConnectionClosed{} -> True
+        _ -> False
+
+    cleanupPlayer = modifyMVar_ activeGameVar $ \activeGame -> do
       debugT $ "Player " ++ show playerName ++ " disconnected"
       let updatedPlayerState = Map.delete playerName (playerState activeGame)
       when (Map.null updatedPlayerState) cleanupGame
