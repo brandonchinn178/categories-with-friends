@@ -40,10 +40,11 @@ main = do
     let isExpired = readMVar >=> hasTimedOut
     (expiredGames, runningGames) <- partitionM (isExpired . snd) $ Map.toList platform
 
-    forM_ expiredGames $ \(_, activeGameVar) -> do
+    forM_ expiredGames $ \(gameId, activeGameVar) -> do
       activeGame <- readMVar activeGameVar
       forM_ (Map.elems $ playerState activeGame) $ \(_, threadId) ->
         throwTo threadId ConnectionClosed
+      debugT $ "Game " ++ show gameId ++ " killed"
 
     return $ Map.fromList runningGames
 
