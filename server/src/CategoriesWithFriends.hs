@@ -1,18 +1,20 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TupleSections #-}
 
 module CategoriesWithFriends
   ( ActiveGame(..)
+  , hasTimedOut
   , initGameWithHost
   , servePlayer
   ) where
 
-import Control.Concurrent.MVar (MVar, modifyMVar_, readMVar)
-import Control.Exception (fromException, throwIO, try)
+import Control.Concurrent (myThreadId)
+import Control.Concurrent.MVar (MVar, modifyMVar_)
+import Control.Exception.Safe (Exception, fromException, handle, throw)
 import Control.Monad (forM_, unless, when)
 import Data.Aeson (FromJSON, ToJSON, eitherDecode', encode)
 import Data.Map.Strict (Map)
@@ -35,7 +37,7 @@ import CategoriesWithFriends.Game.Answer (Answer)
 import CategoriesWithFriends.Game.Category (Category)
 import CategoriesWithFriends.Game.Player (PlayerName)
 import CategoriesWithFriends.Game.Round (GameRoundStatus(..))
-import CategoriesWithFriends.Logging (debugT)
+import CategoriesWithFriends.Logging (debugT, errorT)
 import CategoriesWithFriends.Messages (Message(..))
 
 initGameWithHost :: PlayerName -> IO ActiveGame
@@ -43,25 +45,26 @@ initGameWithHost host = do
   now <- getCurrentTime
   return ActiveGame
     { game = initGame host
-    , playerConns = Map.empty
+    , playerState = Map.empty
     , startTime = now
     }
 
 servePlayer :: MVar ActiveGame -> PlayerName -> Connection -> IO () -> IO ()
-servePlayer activeGameVar playerName playerConn cleanupGame = do
-  modifyMVar_ activeGameVar $ setupPlayer playerName playerConn
+servePlayer activeGameVar playerName playerConn cleanupGame =
+  handle (sendErrorToClientThen $ pure ()) $ do
+    modifyMVar_ activeGameVar $ setupPlayer playerName playerConn
 
-  withPingThread playerConn pingDelay postPing $ runLoop $ do
-    event <- receiveJSONData playerConn
-    debugT $ "Player " ++ show playerName ++ " sent: " ++ show event
+    withPingThread playerConn pingDelay postPing $ runLoop $ do
+      event <- receiveJSONData playerConn
+      debugT $ "Player " ++ show playerName ++ " sent: " ++ show event
 
-    case event of
-      StartRoundEvent ->
-        handleEventOnlyHost startGameRound
-      SubmitAnswersEvent playerAnswers ->
-        handleEvent $ registerAnswers playerName playerAnswers
-      EndValidationEvent ratings ->
-        handleEventOnlyHost $ registerRatings ratings
+      case event of
+        StartRoundEvent ->
+          handleEventOnlyHost startGameRound
+        SubmitAnswersEvent playerAnswers ->
+          handleEvent $ registerAnswers playerName playerAnswers
+        EndValidationEvent ratings ->
+          handleEventOnlyHost $ registerRatings ratings
   where
     pingDelay = 30 -- seconds
     postPing = return ()
@@ -78,29 +81,38 @@ servePlayer activeGameVar playerName playerConn cleanupGame = do
     --   2. Game has run for too long
     --
     -- Any other errors are sent to the client
-    runLoop m = do
-      shouldCleanUp <- readMVar activeGameVar >>= hasTimedOut
-      if shouldCleanUp
-        then stopLoop
-        else try m >>= \case
-          Left e -> case fromException e of
-            Just CloseRequest{} -> stopLoop
-            _ -> do
-              let serverErr = fromMaybe (UnexpectedServerError e) (fromException e)
-              sendJSONData playerConn serverErr
-              runLoop m
-          Right _ -> runLoop m
+    runLoop m =
+      let go = handle (sendErrorToClientThen go) (m >> go)
+      in go
 
-    stopLoop = modifyMVar_ activeGameVar $ \activeGame -> do
+    -- | Send the given exception back to the client, then run the given callback.
+    -- If the exception indicates that the connection should be closed, clean
+    -- up the player and don't run the callback.
+    sendErrorToClientThen onError e
+      | isCloseRequest e = cleanupPlayer
+      | otherwise = do
+          let serverErr = fromMaybe (UnexpectedServerError e) (fromException e)
+          errorT $ show e
+          sendJSONData playerConn serverErr
+          onError
+
+    isCloseRequest e =
+      case fromException e of
+        Just CloseRequest{} -> True
+        Just ConnectionClosed{} -> True
+        _ -> False
+
+    cleanupPlayer = modifyMVar_ activeGameVar $ \activeGame -> do
       debugT $ "Player " ++ show playerName ++ " disconnected"
-      let updatedPlayerConns = Map.delete playerName (playerConns activeGame)
-      when (Map.null updatedPlayerConns) cleanupGame
-      return $ activeGame { playerConns = updatedPlayerConns }
+      let updatedPlayerState = Map.delete playerName (playerState activeGame)
+      when (Map.null updatedPlayerState) cleanupGame
+      return $ activeGame { playerState = updatedPlayerState }
 
-    hasTimedOut ActiveGame{startTime} = do
-      now <- getCurrentTime
-      let timeout = 3600 -- 1 hour
-      return $ addUTCTime timeout startTime < now
+hasTimedOut :: ActiveGame -> IO Bool
+hasTimedOut ActiveGame{startTime} = do
+  now <- getCurrentTime
+  let timeout = 3600 -- 1 hour
+  return $ addUTCTime timeout startTime < now
 
 {- Game mechanics -}
 
@@ -119,11 +131,12 @@ setupPlayer playerName playerConn activeGame = do
     GameRoundFinished{} -> refreshPlayerState game endRoundMessage
     GameFinished{} -> refreshPlayerState game endRoundMessage
 
+  state <- (playerConn,) <$> myThreadId
   return updatedActiveGame
-    { playerConns = Map.insert playerName playerConn $ playerConns activeGame
+    { playerState = Map.insert playerName state $ playerState activeGame
     }
   where
-    isPlayerAlreadyConnected = playerName `Map.member` playerConns activeGame
+    isPlayerAlreadyConnected = playerName `Map.member` playerState activeGame
     throwCannotJoin = throwIO . CannotJoinGameError
 
     addPlayerToGame :: Game 'GameLoading -> IO ActiveGame
@@ -210,7 +223,7 @@ setGame updatedGame ActiveGame{..} = ActiveGame { game = updatedGame, .. }
 setGameAndMessageAll :: Game status -> (Game status -> Message) -> ActiveGame -> IO ActiveGame
 setGameAndMessageAll updatedGame mkMessage activeGame = do
   debugT $ "Sending message to all players: " ++ show message
-  forM_ (Map.elems $ playerConns activeGame) $ \conn ->
+  forM_ (Map.elems $ playerState activeGame) $ \(conn, _) ->
     sendJSONData conn message
 
   return $ setGame updatedGame activeGame
@@ -224,3 +237,8 @@ receiveJSONData conn = either fail return . eitherDecode' =<< receiveData conn
 
 sendJSONData :: ToJSON a => Connection -> a -> IO ()
 sendJSONData conn = sendTextData conn . encode
+
+{- Exception helpers -}
+
+throwIO :: Exception e => e -> IO a
+throwIO = throw
