@@ -14,7 +14,7 @@ module CategoriesWithFriends
 
 import Control.Concurrent (myThreadId)
 import Control.Concurrent.MVar (MVar, modifyMVar_)
-import Control.Exception (fromException, handle, throwIO)
+import Control.Exception.Safe (Exception, fromException, handle, throw)
 import Control.Monad (forM_, unless, when)
 import Data.Aeson (FromJSON, ToJSON, eitherDecode', encode)
 import Data.Map.Strict (Map)
@@ -237,3 +237,8 @@ receiveJSONData conn = either fail return . eitherDecode' =<< receiveData conn
 
 sendJSONData :: ToJSON a => Connection -> a -> IO ()
 sendJSONData conn = sendTextData conn . encode
+
+{- Exception helpers -}
+
+throwIO :: Exception e => e -> IO a
+throwIO = throw
