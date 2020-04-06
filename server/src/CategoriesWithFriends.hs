@@ -37,7 +37,7 @@ import CategoriesWithFriends.Game.Answer (Answer)
 import CategoriesWithFriends.Game.Category (Category)
 import CategoriesWithFriends.Game.Player (PlayerName)
 import CategoriesWithFriends.Game.Round (GameRoundStatus(..))
-import CategoriesWithFriends.Logging (debugT)
+import CategoriesWithFriends.Logging (debugT, errorT)
 import CategoriesWithFriends.Messages (Message(..))
 
 initGameWithHost :: PlayerName -> IO ActiveGame
@@ -92,6 +92,7 @@ servePlayer activeGameVar playerName playerConn cleanupGame =
       | isCloseRequest e = cleanupPlayer
       | otherwise = do
           let serverErr = fromMaybe (UnexpectedServerError e) (fromException e)
+          errorT $ show e
           sendJSONData playerConn serverErr
           onError
 
