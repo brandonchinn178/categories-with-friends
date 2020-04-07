@@ -38,7 +38,6 @@ School subjects
 Excuses for being late
 Ice cream flavors
 Things that jump/bounce
-Television stars
 Things in a park
 Foreign cities
 Stones/Gems
@@ -60,7 +59,7 @@ Magazines
 Capitals
 Kinds of candy
 Items you save up to buy
-Footware
+Footwear
 Something you keep hidden
 Items in a suitcase
 Things with tails
@@ -112,7 +111,6 @@ Things you wear
 Beers
 Things at a circus
 Vegetables
-States
 Things you throw away
 Occupations
 Appliances
@@ -169,7 +167,6 @@ Things at a carnival
 Things you make
 Places to hangout
 Animal noises
-Computer programs
 Honeymoon spots
 Things you buy for kids
 Things that can kill you
