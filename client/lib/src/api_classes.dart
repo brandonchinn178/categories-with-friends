@@ -119,3 +119,90 @@ class EndRound {
     return jsonEncode(object);
   }
 }
+
+class SendToAll {
+  static const event = 'send_to_all';
+
+  // Possible messages that the frontend will send.
+  static const syncValidationType = 'sync_validation';
+  static const requestForVotesType = 'request_for_votes';
+  static const voteValueType = 'vote_value';
+
+  String _sender;
+  String get sender => _sender;
+
+  // Sent as JSON to server
+  static String syncValidation(
+      String sender, Map<String, Map<String, bool>> playerToCategoryToValid) {
+    final object = {
+      'event': event,
+      'payload': {
+        'type': syncValidationType,
+        'answers': playerToCategoryToValid,
+        'sender': sender,
+      },
+    };
+    return jsonEncode(object);
+  }
+
+  // Received from server
+  // Returns (Player -> Category -> Valid)
+  static Map<String, Map<String, bool>> parseSyncValidation(
+      Map<String, dynamic> object) {
+    Map<String, dynamic> answers = object['payload']['answers'];
+    final result = <String, Map<String, bool>>{};
+
+    for (final entry in answers.entries) {
+      final player = entry.key;
+      Map<String, bool> categoryToValid = entry.value.cast<String, bool>();
+      result[player] = categoryToValid;
+    }
+    return result;
+  }
+
+  // Sent as JSON to server
+  static String requestForVotes(
+      String sender, String category, String player, String answer) {
+    final object = {
+      'event': event,
+      'payload': {
+        'type': requestForVotesType,
+        'category': category,
+        'player': player,
+        'answer': answer,
+      },
+      'sender': sender,
+    };
+    return jsonEncode(object);
+  }
+
+  // Received from server
+  // Returns {'category': _, 'player': _, 'answer': _}
+  static Map<String, String> parseRequestForVotes(Map<String, dynamic> object) {
+    Map<String, dynamic> payload = object['payload'];
+    return <String, String>{
+      'category': payload['category'],
+      'player': payload['player'],
+      'answer': payload['answer']
+    };
+  }
+
+  // Sent as JSON to server
+  static String voteValue(String sender, bool vote) {
+    final object = {
+      'event': event,
+      'payload': {
+        'type': voteValueType,
+        'vote': vote,
+      },
+      'sender': sender,
+    };
+    return jsonEncode(object);
+  }
+
+  // Received from server
+  static bool parseVoteValue(Map<String, dynamic> object) {
+    Map<String, dynamic> payload = object['payload'];
+    return payload['vote'];
+  }
+}
