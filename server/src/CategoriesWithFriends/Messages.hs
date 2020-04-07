@@ -7,7 +7,7 @@ module CategoriesWithFriends.Messages
   ( Message(..)
   ) where
 
-import Data.Aeson (ToJSON(..), object, (.=))
+import Data.Aeson (ToJSON(..), Value, object, (.=))
 import Data.Map.Strict (Map)
 import Data.Time (defaultTimeLocale, formatTime, iso8601DateFormat)
 
@@ -24,12 +24,14 @@ data Message
     -- ^ send everyone's answers so the host can validate
   | EndRoundMessage GameRoundInfo AllRatedAnswers (Map PlayerName Int) Bool
     -- ^ send the results of the game so far
+  | SendToAllMessage Value
 
 instance Show Message where
   show RefreshPlayerListMessage{} = "refresh_player_list"
   show StartRoundMessage{} = "start_round"
   show StartValidationMessage{} = "start_validation"
   show EndRoundMessage{} = "end_round"
+  show SendToAllMessage{} = "send_to_all"
 
 instance ToJSON Message where
   toJSON message =
@@ -56,6 +58,9 @@ instance ToJSON Message where
           , "answers" .= answers
           , "scores" .= scores
           , "next_round" .= nextRound
+          ]
+        SendToAllMessage payload ->
+          [ "payload" .= payload
           ]
 
       formatISO8601 = formatTime defaultTimeLocale (iso8601DateFormat (Just "%H:%M:%S"))
