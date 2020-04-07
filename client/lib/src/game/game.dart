@@ -121,6 +121,9 @@ class GameComponent implements OnActivate {
       ..onPlayerList.listen(_updatePlayerList)
       ..onStartRound.listen(_startRound)
       ..onStartValidation.listen(_startValidation)
+      ..onSyncValidation.listen(_syncValidation)
+      ..onRequestForVotes.listen(_requestForVotes)
+      ..onVoteValue.listen(_voteValue)
       ..onEndRound.listen(_endRound)
       ..onError.listen(_onError);
   }
@@ -215,12 +218,27 @@ class GameComponent implements OnActivate {
     _scrollToTop();
   }
 
-  void newGame() {
-    _phase = Phase.lobby;
+  void _syncValidation(Map<String, Map<String, bool>> playerToCategoryToValid) {
+    // Host sent out the data in the first place
+    if (isHost) return;
+    // TODO
+  }
+
+  // Returns {'category': _, 'player': _, 'answer': _}
+  void _requestforVotes(Map<String, String> data) {
+    // TODO
+  }
+
+  void _voteValue(bool value) {
+    // TODO
   }
 
   void _onError(String value) {
     _error = value;
+  }
+
+  void newGame() {
+    _phase = Phase.lobby;
   }
 
   void _clearError() {
@@ -238,6 +256,15 @@ class GameComponent implements OnActivate {
 
   void submitValidation() {
     _apiClient.sendRequest(EndRound.request(playerToCategoryToValid));
+  }
+
+  void syncValidation() {
+    // Only the host should be syncing validation.
+    if (!isHost) {
+      return;
+    }
+    _apiClient
+        .sendRequest(SendToAll.syncValidation(player, playerToCategoryToValid));
   }
 
   void _scrollToTop() {

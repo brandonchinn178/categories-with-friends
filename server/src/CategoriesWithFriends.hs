@@ -65,6 +65,10 @@ servePlayer activeGameVar playerName playerConn cleanupGame =
           handleEvent $ registerAnswers playerName playerAnswers
         EndValidationEvent ratings ->
           handleEventOnlyHost $ registerRatings ratings
+        SendToAllEvent payload ->
+          handleEvent $ \activeGame -> do
+            sendToAll activeGame $ SendToAllMessage payload
+            return activeGame
   where
     pingDelay = 30 -- seconds
     postPing = return ()
@@ -222,10 +226,7 @@ setGame updatedGame ActiveGame{..} = ActiveGame { game = updatedGame, .. }
 
 setGameAndMessageAll :: Game status -> (Game status -> Message) -> ActiveGame -> IO ActiveGame
 setGameAndMessageAll updatedGame mkMessage activeGame = do
-  debugT $ "Sending message to all players: " ++ show message
-  forM_ (Map.elems $ playerState activeGame) $ \(conn, _) ->
-    sendJSONData conn message
-
+  sendToAll activeGame message
   return $ setGame updatedGame activeGame
   where
     message = mkMessage updatedGame
@@ -237,6 +238,12 @@ receiveJSONData conn = either fail return . eitherDecode' =<< receiveData conn
 
 sendJSONData :: ToJSON a => Connection -> a -> IO ()
 sendJSONData conn = sendTextData conn . encode
+
+sendToAll :: ActiveGame -> Message -> IO ()
+sendToAll ActiveGame{playerState} message = do
+  debugT $ "Sending message to all players: " ++ show message
+  forM_ (Map.elems playerState) $ \(conn, _) ->
+    sendJSONData conn message
 
 {- Exception helpers -}
 
