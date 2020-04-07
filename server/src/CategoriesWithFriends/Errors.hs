@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -14,25 +15,29 @@ data ServerError
   | CannotJoinGameError Text
   | UnexpectedEventError Text Text
   | UnexpectedServerError SomeException
-
-instance Show ServerError where
-  show NotHostError = "not_host"
-  show CannotJoinGameError{} = "cannot_join_game"
-  show UnexpectedEventError{} = "unexpected_event"
-  show UnexpectedServerError{} = "server_error"
-
-instance Exception ServerError
+  deriving (Show, Exception)
 
 instance ToJSON ServerError where
   toJSON err =
-    let errorEntry = "error" .= show err
+    let errorEntry = "error" .= errorId err
     in object $ errorEntry : mkErrorPayload err
     where
       mkErrorPayload = \case
         NotHostError -> []
-        CannotJoinGameError msg -> [ "message" .= msg ]
+        CannotJoinGameError msg ->
+          [ "message" .= msg
+          ]
         UnexpectedEventError event msg ->
           [ "event" .= event
           , "message" .= msg
           ]
-        UnexpectedServerError e -> [ "message" .= displayException e ]
+        UnexpectedServerError e ->
+          [ "message" .= displayException e
+          ]
+
+      errorId :: ServerError -> String
+      errorId = \case
+        NotHostError -> "not_host"
+        CannotJoinGameError{} -> "cannot_join_game"
+        UnexpectedEventError{} -> "unexpected_event"
+        UnexpectedServerError{} -> "server_error"

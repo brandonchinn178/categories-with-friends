@@ -13,6 +13,7 @@ https://github.com/jaspervdj/stylish-haskell/issues/183
 
 module CategoriesWithFriends.ActiveGame (ActiveGame(..)) where
 
+import Control.Concurrent (ThreadId)
 import Data.Map.Strict (Map)
 import Data.Time (UTCTime)
 import Network.WebSockets (Connection)
@@ -23,7 +24,7 @@ import CategoriesWithFriends.Game.Player (PlayerName)
 data ActiveGame where
   ActiveGame :: forall status.
     { game        :: Game status
-    , playerConns :: Map PlayerName Connection
+    , playerState :: Map PlayerName (Connection, ThreadId)
     , startTime   :: UTCTime
     }
     -> ActiveGame

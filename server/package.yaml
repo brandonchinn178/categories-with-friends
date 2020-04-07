@@ -28,6 +28,7 @@ dependencies:
   - file-embed
   - MonadRandom
   - random-shuffle
+  - safe-exceptions
   - text
   - time
   - websockets
