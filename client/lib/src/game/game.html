@@ -56,7 +56,8 @@
           {{playerToCategoryToAnswers[player][category]}}
           <material-checkbox
             class="grade"
-            [(ngModel)]="playerToCategoryToValid[player][category]"
+            [checked]="playerToCategoryToValid[player][category]"
+            (checkedChange)="updateValidity(player, category, $event)"
             [disabled]="!isHost">
           </material-checkbox>
           <!-- Link to google search -->

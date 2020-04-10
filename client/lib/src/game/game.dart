@@ -121,7 +121,7 @@ class GameComponent implements OnActivate {
       ..onPlayerList.listen(_updatePlayerList)
       ..onStartRound.listen(_startRound)
       ..onStartValidation.listen(_startValidation)
-      ..onSyncValidation.listen(_syncValidation)
+      ..onSyncValidation.listen(_onSyncValidation)
       ..onRequestForVotes.listen(_requestForVotes)
       ..onVoteValue.listen(_voteValue)
       ..onEndRound.listen(_endRound)
@@ -218,14 +218,16 @@ class GameComponent implements OnActivate {
     _scrollToTop();
   }
 
-  void _syncValidation(Map<String, Map<String, bool>> playerToCategoryToValid) {
+  void _onSyncValidation(
+      Map<String, Map<String, bool>> playerToCategoryToValid) {
+    print('HELLO received validation: $playerToCategoryToValid');
     // Host sent out the data in the first place
     if (isHost) return;
-    // TODO
+    _playerToCategoryToValid = playerToCategoryToValid;
   }
 
   // Returns {'category': _, 'player': _, 'answer': _}
-  void _requestforVotes(Map<String, String> data) {
+  void _requestForVotes(Map<String, String> data) {
     // TODO
   }
 
@@ -256,6 +258,11 @@ class GameComponent implements OnActivate {
 
   void submitValidation() {
     _apiClient.sendRequest(EndRound.request(playerToCategoryToValid));
+  }
+
+  void updateValidity(String player, String category, bool value) {
+    _playerToCategoryToValid[player][category] = value;
+    syncValidation();
   }
 
   void syncValidation() {

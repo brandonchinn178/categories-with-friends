@@ -57,6 +57,7 @@ class ApiClient {
 
   void _routeResponse(String json) {
     final object = jsonDecode(json);
+    print('HELLO ' + object.toString());
     String error = object['error'];
     if (isNotBlank(error)) {
       switch (error) {

@@ -149,7 +149,9 @@ class SendToAll {
   // Returns (Player -> Category -> Valid)
   static Map<String, Map<String, bool>> parseSyncValidation(
       Map<String, dynamic> object) {
+    print('HELLO ' + object.toString());
     Map<String, dynamic> answers = object['payload']['answers'];
+    print('HELLO ' + answers.toString());
     final result = <String, Map<String, bool>>{};
 
     for (final entry in answers.entries) {
