@@ -3,7 +3,10 @@ import 'dart:async';
 
 import 'package:angular/angular.dart';
 import 'package:angular_router/angular_router.dart';
+import 'package:angular_components/laminate/components/modal/modal.dart';
+import 'package:angular_components/laminate/overlay/module.dart';
 import 'package:angular_components/material_checkbox/material_checkbox.dart';
+import 'package:angular_components/material_dialog/material_dialog.dart';
 import 'package:angular_components/material_icon/material_icon.dart';
 import 'package:angular_components/material_input/material_input.dart';
 import 'package:angular_components/material_button/material_button.dart';
@@ -24,13 +27,16 @@ const second = const Duration(seconds: 1);
     materialInputDirectives,
     MaterialButtonComponent,
     MaterialCheckboxComponent,
+    MaterialDialogComponent,
     MaterialIconComponent,
+    ModalComponent,
     NgIf,
     NgFor
   ],
   exports: [Phase],
   providers: [
     ClassProvider(ApiClient),
+    overlayBindings,
   ],
 )
 class GameComponent implements OnActivate {
@@ -98,6 +104,21 @@ class GameComponent implements OnActivate {
   String _letter;
   String get letter => _letter;
 
+  bool showVoteDialog = false;
+  String _voteTargetCategory = '';
+  String get voteTargetCategory => _voteTargetCategory;
+  String _voteTargetAnswer = '';
+  String get voteTargetAnswer => _voteTargetAnswer;
+
+  int _currentYesVotes = 0;
+  int get currentYesVotes => _currentYesVotes;
+
+  int _currentNoVotes = 0;
+  int get currentNoVotes => _currentNoVotes;
+
+  bool _alreadyVoted = false;
+  bool get alreadyVoted => _alreadyVoted;
+
   // Links to Google search.
   Uri _googleUrl(String answer) => Uri(
       scheme: 'https',
@@ -122,8 +143,9 @@ class GameComponent implements OnActivate {
       ..onStartRound.listen(_startRound)
       ..onStartValidation.listen(_startValidation)
       ..onSyncValidation.listen(_onSyncValidation)
-      ..onRequestForVotes.listen(_requestForVotes)
-      ..onVoteValue.listen(_voteValue)
+      ..onRequestForVotes.listen(_onRequestForVotes)
+      ..onVoteValue.listen(_onVoteValue)
+      ..onCloseVoting.listen(_onCloseVoting)
       ..onEndRound.listen(_endRound)
       ..onError.listen(_onError);
   }
@@ -220,19 +242,42 @@ class GameComponent implements OnActivate {
 
   void _onSyncValidation(
       Map<String, Map<String, bool>> playerToCategoryToValid) {
-    print('HELLO received validation: $playerToCategoryToValid');
     // Host sent out the data in the first place
     if (isHost) return;
     _playerToCategoryToValid = playerToCategoryToValid;
   }
 
   // Returns {'category': _, 'player': _, 'answer': _}
-  void _requestForVotes(Map<String, String> data) {
-    // TODO
+  void _onRequestForVotes(Map<String, String> data) {
+    showVoteDialog = true;
+    _alreadyVoted = false;
+    _currentYesVotes = 0;
+    _currentNoVotes = 0;
+
+    _voteTargetCategory = data['category'];
+    _voteTargetAnswer = data['answer'];
   }
 
-  void _voteValue(bool value) {
-    // TODO
+  void voteYes() {
+    _apiClient.sendRequest(SendToAll.voteValue(player, true));
+    _alreadyVoted = true;
+  }
+
+  void voteNo() {
+    _apiClient.sendRequest(SendToAll.voteValue(player, false));
+    _alreadyVoted = true;
+  }
+
+  void _onVoteValue(bool value) {
+    if (value) {
+      _currentYesVotes++;
+    } else {
+      _currentNoVotes++;
+    }
+  }
+
+  void _onCloseVoting(_) {
+    showVoteDialog = false;
   }
 
   void _onError(String value) {
@@ -272,6 +317,25 @@ class GameComponent implements OnActivate {
     }
     _apiClient
         .sendRequest(SendToAll.syncValidation(player, playerToCategoryToValid));
+  }
+
+  void requestForVotes(String category, String player) {
+    // Only the host can request votes.
+    if (!isHost) {
+      return;
+    }
+
+    _apiClient.sendRequest(SendToAll.requestForVotes(
+        player, category, player, playerToCategoryToAnswers[player][category]));
+  }
+
+  void closeVote() {
+    // Only the host can stop voting.
+    if (!isHost) {
+      return;
+    }
+
+    _apiClient.sendRequest(SendToAll.closeVoting(player));
   }
 
   void _scrollToTop() {

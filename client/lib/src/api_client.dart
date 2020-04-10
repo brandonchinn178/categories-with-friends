@@ -35,6 +35,9 @@ class ApiClient {
   final _onVoteValue = StreamController<bool>.broadcast();
   Stream<bool> get onVoteValue => _onVoteValue.stream;
 
+  final _onCloseVoting = StreamController<void>.broadcast();
+  Stream<void> get onCloseVoting => _onCloseVoting.stream;
+
   final _onError = StreamController<String>.broadcast();
   Stream<String> get onError => _onError.stream;
 
@@ -57,7 +60,6 @@ class ApiClient {
 
   void _routeResponse(String json) {
     final object = jsonDecode(json);
-    print('HELLO ' + object.toString());
     String error = object['error'];
     if (isNotBlank(error)) {
       switch (error) {
@@ -100,6 +102,9 @@ class ApiClient {
             return;
           case SendToAll.voteValueType:
             _onVoteValue.add(SendToAll.parseVoteValue(object));
+            return;
+          case SendToAll.closeVotingType:
+            _onCloseVoting.add(null);
             return;
           default:
             throw ArgumentError('send_to_all type $type is hnhandled');

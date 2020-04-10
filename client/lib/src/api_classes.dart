@@ -127,6 +127,7 @@ class SendToAll {
   static const syncValidationType = 'sync_validation';
   static const requestForVotesType = 'request_for_votes';
   static const voteValueType = 'vote_value';
+  static const closeVotingType = 'close_voting';
 
   String _sender;
   String get sender => _sender;
@@ -149,9 +150,7 @@ class SendToAll {
   // Returns (Player -> Category -> Valid)
   static Map<String, Map<String, bool>> parseSyncValidation(
       Map<String, dynamic> object) {
-    print('HELLO ' + object.toString());
     Map<String, dynamic> answers = object['payload']['answers'];
-    print('HELLO ' + answers.toString());
     final result = <String, Map<String, bool>>{};
 
     for (final entry in answers.entries) {
@@ -206,5 +205,17 @@ class SendToAll {
   static bool parseVoteValue(Map<String, dynamic> object) {
     Map<String, dynamic> payload = object['payload'];
     return payload['vote'];
+  }
+
+  // Sent as JSON to server
+  static String closeVoting(String sender) {
+    final object = {
+      'event': event,
+      'payload': {
+        'type': closeVotingType,
+      },
+      'sender': sender,
+    };
+    return jsonEncode(object);
   }
 }
