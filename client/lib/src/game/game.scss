@@ -1,7 +1,17 @@
+@import 'package:angular_components/material_button/mixins';
+
 .grid {
   align-items: center;
   display: grid;
-  grid-template-columns: 40% auto;
+
+  &.two-columns {
+    grid-template-columns: 40% auto;
+  }
+
+  &.three-columns {
+    grid-template-columns: 40% 30% auto;
+  }
+
   grid-gap: 8px;
 
   material-input {
@@ -71,7 +81,7 @@ material-button.btn {
 
 material-checkbox.grade {
   margin: 0 0 0 16px;
-  vertical-align: bottom;
+  vertical-align: middle;
 }
 
 .winner {
@@ -87,6 +97,32 @@ material-checkbox.grade {
   text-decoration: none;
 
   material-icon {
-    vertical-align: bottom;
+    vertical-align: middle;
+  }
+}
+
+material-button.request-votes {
+  margin-left: 8px;
+}
+
+.vote-header {
+  color: green;
+}
+
+.votes-description {
+  font-size: 16px;
+  max-width: 300px;
+}
+
+.votes {
+  font-size: 20px;
+  padding: 8px 0;
+
+  .votes-yes {
+    color: green;
+  }
+
+  .votes-no {
+    color: #630303;
   }
 }

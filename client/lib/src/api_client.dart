@@ -23,6 +23,21 @@ class ApiClient {
   final _onEndRound = StreamController<EndRound>.broadcast();
   Stream<EndRound> get onEndRound => _onEndRound.stream;
 
+  final _onSyncValidation =
+      StreamController<Map<String, Map<String, bool>>>.broadcast();
+  Stream<Map<String, Map<String, bool>>> get onSyncValidation =>
+      _onSyncValidation.stream;
+
+  final _onRequestForVotes = StreamController<Map<String, String>>.broadcast();
+  Stream<Map<String, String>> get onRequestForVotes =>
+      _onRequestForVotes.stream;
+
+  final _onVoteValue = StreamController<bool>.broadcast();
+  Stream<bool> get onVoteValue => _onVoteValue.stream;
+
+  final _onCloseVoting = StreamController<void>.broadcast();
+  Stream<void> get onCloseVoting => _onCloseVoting.stream;
+
   final _onError = StreamController<String>.broadcast();
   Stream<String> get onError => _onError.stream;
 
@@ -74,6 +89,26 @@ class ApiClient {
         return;
       case 'end_round':
         _onEndRound.add(EndRound(object));
+        return;
+      // send_to_all consists of misc UI defined messages.
+      case 'send_to_all':
+        final type = object['payload']['type'];
+        switch (type) {
+          case SendToAll.syncValidationType:
+            _onSyncValidation.add(SendToAll.parseSyncValidation(object));
+            return;
+          case SendToAll.requestForVotesType:
+            _onRequestForVotes.add(SendToAll.parseRequestForVotes(object));
+            return;
+          case SendToAll.voteValueType:
+            _onVoteValue.add(SendToAll.parseVoteValue(object));
+            return;
+          case SendToAll.closeVotingType:
+            _onCloseVoting.add(null);
+            return;
+          default:
+            throw ArgumentError('send_to_all type $type is hnhandled');
+        }
         return;
       default:
         throw ArgumentError('Event $event is hnhandled');
