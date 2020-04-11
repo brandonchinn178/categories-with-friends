@@ -103,7 +103,7 @@ generateRound players roundNum = do
       , 'P'
       -- , 'Q'
       , 'R'
-      , 'X'
+      -- , 'X'
       , 'T'
       -- , 'U'
       , 'V'
