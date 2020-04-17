@@ -38,7 +38,7 @@ import CategoriesWithFriends.Game
 import CategoriesWithFriends.Game.Answer (Answer, AnswerRatings)
 import CategoriesWithFriends.Game.Category (Category)
 import CategoriesWithFriends.Game.Player (PlayerName)
-import CategoriesWithFriends.Game.Round (GameRoundStatus(..))
+import CategoriesWithFriends.Game.Round (GameRoundInfo(..), GameRoundStatus(..))
 import CategoriesWithFriends.Logging (debugT, errorT)
 import CategoriesWithFriends.Messages (Message(..))
 
@@ -59,7 +59,18 @@ servePlayer activeGameVar playerName playerConn cleanupGame =
     withPingThread playerConn pingDelay postPing $ runLoop $
       -- check every five seconds for active player
       timeout 5000000 (receiveJSONData playerConn) >>= \case
-        Nothing -> pure () -- TODO
+        Nothing -> modifyMVar_ activeGameVar $ \activeGame@ActiveGame{game} ->
+          case getState game of
+            GameRoundBeingAnswered{} -> do
+              -- check if round ended over 5 seconds ago
+              -- if so, and if player hasn't answered yet, register their
+              -- answers as no answers
+              hasRoundExpired <- timeIsEarlierThan 5 . deadline . getRoundInfo $ game
+              if not hasRoundExpired || hasPlayerAnswered playerName game
+                then return activeGame
+                else registerAnswers playerName mempty activeGame
+            _ -> return activeGame
+
         Just event -> do
           debugT $ "Player " ++ show playerName ++ " sent: " ++ show event
 
