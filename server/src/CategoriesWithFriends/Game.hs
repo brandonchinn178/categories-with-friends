@@ -29,6 +29,7 @@ module CategoriesWithFriends.Game
     -- * Starting a round
   , startRound
     -- * Handle player answers
+  , hasPlayerAnswered
   , addAnswers
   , AddAnswersResult(..)
   , rateAnswers
@@ -185,6 +186,9 @@ startRound game = do
   return $ game { state = GameRoundBeingAnswered gameRound }
 
 {- Handle player answers -}
+
+hasPlayerAnswered :: PlayerName -> Game ('GameRunning 'RoundBeingAnswered) -> Bool
+hasPlayerAnswered playerName = withCurrRound (Round.hasPlayerAnswered playerName)
 
 data AddAnswersResult
   = WaitForOtherPlayers (Game ('GameRunning 'RoundBeingAnswered))

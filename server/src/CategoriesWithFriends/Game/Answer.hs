@@ -16,6 +16,7 @@ module CategoriesWithFriends.Game.Answer
   , getRatedAnswers
     -- * Actions
   , initAnswers
+  , hasPlayerAnswered
   , AnswersForPlayer
   , addAnswers
   , AnswerRatings
@@ -24,6 +25,7 @@ module CategoriesWithFriends.Game.Answer
 
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
+import Data.Maybe (isJust)
 import Data.Text (Text)
 
 import CategoriesWithFriends.Game.Category (Category)
@@ -73,6 +75,17 @@ initAnswers players categories = PlayerAnswers $
   Map.fromList $ map (, emptyAnswers) players
   where
     emptyAnswers = Map.fromList $ map (, MaybeAnswer Nothing) categories
+
+-- | Return True if the given player has answered already.
+hasPlayerAnswered :: PlayerName -> PlayerAnswers 'AnswersAccepted -> Bool
+hasPlayerAnswered playerName = checkAnswers . Map.lookup playerName . unPlayerAnswers
+  where
+    checkAnswers = \case
+      Nothing -> error $ "Player not found: " ++ show playerName
+      Just playerAnswers -> all (isJust . fromMaybeAnswer) playerAnswers
+
+    fromMaybeAnswer :: AnswerInfo 'AnswersAccepted -> Maybe Answer
+    fromMaybeAnswer (MaybeAnswer answer) = answer
 
 type AnswersForPlayer = Map Category Answer
 

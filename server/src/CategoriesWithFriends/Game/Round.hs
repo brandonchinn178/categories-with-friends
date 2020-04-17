@@ -9,6 +9,7 @@ module CategoriesWithFriends.Game.Round
   , GameRoundStatus(..)
     -- * Queries
   , getRoundInfo
+  , hasPlayerAnswered
   , getAnswers
   , getRatedAnswers
     -- * Actions
@@ -59,6 +60,9 @@ type family GameRoundAnswerStatus (status :: GameRoundStatus) :: AnswerStatus wh
 
 getRoundInfo :: GameRound status -> GameRoundInfo
 getRoundInfo = roundInfo
+
+hasPlayerAnswered :: PlayerName -> GameRound 'RoundBeingAnswered -> Bool
+hasPlayerAnswered playerName = Answer.hasPlayerAnswered playerName . answers
 
 getAnswers :: GameRound 'RoundBeingRated -> AllAnswers
 getAnswers = Answer.getAnswers . answers
