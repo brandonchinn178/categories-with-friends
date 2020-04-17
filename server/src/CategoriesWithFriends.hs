@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -28,6 +29,7 @@ import Network.WebSockets
     , sendTextData
     , withPingThread
     )
+import System.Timeout (timeout)
 
 import CategoriesWithFriends.ActiveGame (ActiveGame(..))
 import CategoriesWithFriends.Errors (ServerError(..))
@@ -54,21 +56,24 @@ servePlayer activeGameVar playerName playerConn cleanupGame =
   handle (sendErrorToClientThen $ pure ()) $ do
     modifyMVar_ activeGameVar $ setupPlayer playerName playerConn
 
-    withPingThread playerConn pingDelay postPing $ runLoop $ do
-      event <- receiveJSONData playerConn
-      debugT $ "Player " ++ show playerName ++ " sent: " ++ show event
+    withPingThread playerConn pingDelay postPing $ runLoop $
+      -- check every five seconds for active player
+      timeout 5000000 (receiveJSONData playerConn) >>= \case
+        Nothing -> pure () -- TODO
+        Just event -> do
+          debugT $ "Player " ++ show playerName ++ " sent: " ++ show event
 
-      case event of
-        StartRoundEvent ->
-          handleEventOnlyHost startGameRound
-        SubmitAnswersEvent playerAnswers ->
-          handleEvent $ registerAnswers playerName playerAnswers
-        EndValidationEvent ratings ->
-          handleEventOnlyHost $ registerRatings ratings
-        SendToAllEvent payload ->
-          handleEvent $ \activeGame -> do
-            sendToAll activeGame $ SendToAllMessage payload
-            return activeGame
+          case event of
+            StartRoundEvent ->
+              handleEventOnlyHost startGameRound
+            SubmitAnswersEvent playerAnswers ->
+              handleEvent $ registerAnswers playerName playerAnswers
+            EndValidationEvent ratings ->
+              handleEventOnlyHost $ registerRatings ratings
+            SendToAllEvent payload ->
+              handleEvent $ \activeGame -> do
+                sendToAll activeGame $ SendToAllMessage payload
+                return activeGame
   where
     pingDelay = 30 -- seconds
     postPing = return ()
@@ -115,8 +120,8 @@ servePlayer activeGameVar playerName playerConn cleanupGame =
 hasTimedOut :: ActiveGame -> IO Bool
 hasTimedOut ActiveGame{startTime} = do
   now <- getCurrentTime
-  let timeout = 3600 -- 1 hour
-  return $ addUTCTime timeout startTime < now
+  let gameTimeout = 3600 -- 1 hour
+  return $ addUTCTime gameTimeout startTime < now
 
 {- Game mechanics -}
 
