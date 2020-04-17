@@ -25,17 +25,11 @@ data Message
   | EndRoundMessage GameRoundInfo AllRatedAnswers (Map PlayerName Int) Bool
     -- ^ send the results of the game so far
   | SendToAllMessage Value
-
-instance Show Message where
-  show RefreshPlayerListMessage{} = "refresh_player_list"
-  show StartRoundMessage{} = "start_round"
-  show StartValidationMessage{} = "start_validation"
-  show EndRoundMessage{} = "end_round"
-  show SendToAllMessage{} = "send_to_all"
+  deriving (Show)
 
 instance ToJSON Message where
   toJSON message =
-    let eventEntry = "event" .= show message
+    let eventEntry = "event" .= messageId message
     in object $ eventEntry : mkMessagePayload message
     where
       mkMessagePayload = \case
@@ -62,5 +56,13 @@ instance ToJSON Message where
         SendToAllMessage payload ->
           [ "payload" .= payload
           ]
+
+      messageId :: Message -> String
+      messageId = \case
+        RefreshPlayerListMessage{} -> "refresh_player_list"
+        StartRoundMessage{} -> "start_round"
+        StartValidationMessage{} -> "start_validation"
+        EndRoundMessage{} -> "end_round"
+        SendToAllMessage{} -> "send_to_all"
 
       formatISO8601 = formatTime defaultTimeLocale (iso8601DateFormat (Just "%H:%M:%S"))
