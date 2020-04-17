@@ -53,18 +53,23 @@ data AnswerInfo (status :: AnswerStatus) where
 {- Validation Result -}
 
 data AnswerRating = AnswerRating
-  { isValid :: Bool
+  { isValid     :: Bool
+  , worthDouble :: Bool
+    -- ^ If True, this answer deserves double points, for when an answer is
+    -- alliterative
   } deriving (Show)
 
 instance ToJSON AnswerRating where
   toJSON AnswerRating{..} = object
     [ "is_valid" .= isValid
+    , "worth_double" .= worthDouble
     ]
 
 instance FromJSON AnswerRating where
   parseJSON = withObject "AnswerRating" $ \o ->
     AnswerRating
       <$> o .: "is_valid"
+      <*> o .: "worth_double"
 
 {- Queries -}
 
