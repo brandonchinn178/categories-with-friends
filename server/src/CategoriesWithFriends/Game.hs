@@ -43,7 +43,12 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 
 import CategoriesWithFriends.Game.Answer
-    (AllAnswers, AllRatedAnswers, AnswerRatings, AnswersForPlayer)
+    ( AllAnswers
+    , AllRatedAnswers
+    , AnswerRating(..)
+    , AnswerRatings
+    , AnswersForPlayer
+    )
 import CategoriesWithFriends.Game.Player (PlayerName)
 import CategoriesWithFriends.Game.Round
     (GameRound, GameRoundInfo(roundNum), GameRoundStatus(..), generateRound)
@@ -102,7 +107,7 @@ getScores game = Map.unionsWith (+) $ emptyScores : pastScores
     emptyScores = Map.fromList . map (, 0) . getPlayers $ game
     pastScores = map scoreRound . pastRounds $ game
     scoreRound gameRound = scorePlayer <$> Round.getRatedAnswers gameRound
-    scorePlayer = Map.size . Map.filter ((== True) . snd)
+    scorePlayer = Map.size . Map.filter ((== True) . isValid . snd)
 
 getPastRounds :: Game status -> [GameRound 'RoundDone]
 getPastRounds = pastRounds

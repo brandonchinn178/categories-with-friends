@@ -8,7 +8,7 @@ import Data.Aeson (FromJSON(..), Value, withObject, (.:))
 import Data.Map.Strict (Map)
 import qualified Data.Text as Text
 
-import CategoriesWithFriends.Game.Answer (Answer)
+import CategoriesWithFriends.Game.Answer (Answer, AnswerRating)
 import CategoriesWithFriends.Game.Category (Category)
 import CategoriesWithFriends.Game.Player (PlayerName)
 
@@ -17,7 +17,7 @@ data Event
     -- ^ the host wants to start a round
   | SubmitAnswersEvent (Map Category Answer)
     -- ^ a player submitting their answers
-  | EndValidationEvent (Map PlayerName (Map Category Bool))
+  | EndValidationEvent (Map PlayerName (Map Category AnswerRating))
     -- ^ a player has finished validating everyone's answers
   | SendToAllEvent Value
     -- ^ an arbitrary payload to send to all clients

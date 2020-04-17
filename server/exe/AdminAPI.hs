@@ -30,6 +30,7 @@ import qualified Text.Blaze.Html5.Attributes as A
 
 import CategoriesWithFriends (ActiveGame(..))
 import qualified CategoriesWithFriends.Game as Game
+import qualified CategoriesWithFriends.Game.Answer as Answer
 import qualified CategoriesWithFriends.Game.Round as Round
 
 import Platform (Platform)
@@ -115,10 +116,10 @@ renderGame gameId ActiveGame{..} = renderHtml (Just gameId) $ do
   -- render all past games
   forM_ (reverse $ Game.getPastRounds game) $ \gameRound -> do
     renderRoundInfo gameRound "Finished"
-    renderAnswers gameRound (Round.getRatedAnswers gameRound) $ \(answer, isValid) ->
+    renderAnswers gameRound (Round.getRatedAnswers gameRound) $ \(answer, result) ->
       if Text.null answer
         then "--"
-        else Text.unwords [answer, if isValid then "✔" else "✗"]
+        else Text.unwords [answer, if Answer.isValid result then "✔" else "✗"]
   where
     renderGameInfo = do
       let showRoundNum = show . Round.roundNum . Round.getRoundInfo
