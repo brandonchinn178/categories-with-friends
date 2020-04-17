@@ -21,7 +21,7 @@ import Data.Aeson (FromJSON, ToJSON, eitherDecode', encode)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
-import Data.Time (addUTCTime, getCurrentTime)
+import Data.Time (UTCTime, addUTCTime, getCurrentTime)
 import Network.WebSockets
     ( Connection
     , ConnectionException(..)
@@ -118,10 +118,14 @@ servePlayer activeGameVar playerName playerConn cleanupGame =
       return $ activeGame { playerState = updatedPlayerState }
 
 hasTimedOut :: ActiveGame -> IO Bool
-hasTimedOut ActiveGame{startTime} = do
+hasTimedOut = timeIsEarlierThan 3600 . startTime
+
+-- | Return True if the given time is past the given duration (in
+-- seconds) ago.
+timeIsEarlierThan :: Int -> UTCTime -> IO Bool
+timeIsEarlierThan duration time = do
   now <- getCurrentTime
-  let gameTimeout = 3600 -- 1 hour
-  return $ addUTCTime gameTimeout startTime < now
+  return $ addUTCTime (fromIntegral duration) time < now
 
 {- Game mechanics -}
 
