@@ -211,6 +211,10 @@ class GameComponent implements OnActivate {
 
     _playerToCategoryToValid = {};
 
+    // todo test this if players refresh the page.
+    final players = _playerToCategoryToAnswers.keys;
+    final categories = _playerToCategoryToAnswers.values.keys;
+
     for (final player in players) {
       for (final category in categories) {
         // Initialize validity to true, unless answer is blank.
