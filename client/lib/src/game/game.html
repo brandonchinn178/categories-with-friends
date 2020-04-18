@@ -23,7 +23,7 @@
     <div *ngFor="let category of categories" class="answer-input grid
       two-columns">
       <span class="category left">{{category}}</span>
-      <material-input class="right" [(ngModel)]="categoryToAnswer[category]"></material-input>
+      <material-input class="right" [(ngModel)]="categoryToAnswer[category]" [disabled]="submittedAnswers"></material-input>
     </div>
   </div>
   <material-button *ngIf="!submittedAnswers" class="btn" raised (trigger)="submitAnswers">
