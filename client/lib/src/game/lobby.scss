@@ -1,0 +1,128 @@
+@import 'package:angular_components/material_button/mixins';
+
+.grid {
+  align-items: center;
+  display: grid;
+
+  &.two-columns {
+    grid-template-columns: 40% auto;
+  }
+
+  &.three-columns {
+    grid-template-columns: 40% 30% auto;
+  }
+
+  grid-gap: 8px;
+
+  material-input {
+    margin-top: 8px;
+    width: 100%;
+  }
+}
+
+.category {
+  color: #5f5c5c;
+}
+
+.validation-category {
+  color: #5f5c5c;
+  font-size: 20px;
+  margin: 8px 0;
+}
+
+.share-link {
+  color: #0779a7;
+  margin-bottom: 16px;
+}
+
+.host {
+  color: #403838;
+}
+
+material-button.btn {
+  margin: 16px 0;
+}
+
+.timer {
+  border-radius: 8px;
+  background: #fdfdf7;
+  border: .5px green solid;
+  color: #b10303;
+  font-size: 32px;
+  padding: 32px;
+  position: fixed;
+  right: 32px;
+  top: 32px;
+  z-index: 1;
+}
+  
+.title {
+  margin: 16px 0;
+}
+
+.scoreboard {
+  .title {
+    color: green;
+  }
+
+  border: 1px green solid;
+  background: #f9f9f9;
+  color: #5f5c5c;
+  margin: 16px;
+  padding: 16px;
+  font-size: 20px;
+}
+
+.your-score {
+  color: green;
+  font-size: 20px;
+  margin-bottom: 16px;
+}
+
+material-checkbox.grade {
+  margin: 0 0 0 16px;
+  vertical-align: middle;
+}
+
+.winner {
+  color: maroon;
+  font-size: 24px;
+}
+
+.margin-top {
+  margin-top: 16px;
+}
+
+.google-link {
+  text-decoration: none;
+
+  material-icon {
+    vertical-align: middle;
+  }
+}
+
+material-button.request-votes {
+  margin-left: 8px;
+}
+
+.vote-header {
+  color: green;
+}
+
+.votes-description {
+  font-size: 16px;
+  max-width: 300px;
+}
+
+.votes {
+  font-size: 20px;
+  padding: 8px 0;
+
+  .votes-yes {
+    color: green;
+  }
+
+  .votes-no {
+    color: #630303;
+  }
+}

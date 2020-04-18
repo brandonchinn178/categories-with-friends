@@ -1,0 +1,16 @@
+<!-- Wait for people -->
+<div class="card">
+  <div class="share-link">
+     Share this link with other people: 
+     <a [href]="gameHomeUrl">{{gameHomeUrl}}</a>
+  </div>
+  <div>There are currently {{players.length}} players.</div>
+  <ul>
+    <li *ngFor="let currPlayer of players" [class.host]="host == currPlayer">
+      {{currPlayer}} <span *ngIf="host == currPlayer">(Host)</span>
+    </li>
+  </ul>
+
+  <div class="margin-top">Only the host can start the game</div>
+  <material-button class="btn" raised [disabled]="!isHost" (trigger)="startRound">Start game</material-button>
+</div>

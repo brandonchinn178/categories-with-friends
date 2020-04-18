@@ -1,0 +1,86 @@
+<!-- View everyone's answers and argue -->
+<div class="card">
+  <div class="title">
+    <ng-container *ngIf="round > 0">Round {{round}}</ng-container>Validation
+  </div>
+  <div class="description">
+    Share your answers and discuss which ones should not count. Only the host can mark answers as invalid.
+  </div>
+
+  <div *ngFor="let category of categories" class="grid three-columns">
+    <div class="validation-category">{{category}}</div>
+    <div><!-- Placeholder for grid --></div>
+    <div><!-- Placeholder for grid --></div>
+
+    <ng-container *ngFor="let player of players">
+      <div>
+        {{player}}
+      </div>
+      <div>
+        <span *ngIf="isBlankAnswer(player, category)" class="answer">
+          --
+        </span>
+        <span *ngIf="!isBlankAnswer(player, category)" class="answer">
+          {{answer(player,category)}}
+        </span>
+      </div>
+      <div>
+        <material-checkbox
+          class="grade"
+          [checked]="playerToCategoryToValid[player][category]"
+          (checkedChange)="updateValidity(player, category, $event)"
+          [disabled]="!isHost">
+        </material-checkbox>
+        <!-- Link to google search -->
+        <a [href]="googleUrl(answer(player,category))" target="_blank"
+                   class="google-link">
+          <material-icon icon="search"></material-icon>
+        </a>
+        <material-button class="request-votes" raised
+                         (trigger)="requestForVotes(category, player)"
+                         *ngIf="isHost">
+          Vote
+        </material-button>
+      </div>
+    </ng-container>
+  </div>
+  <div class="margin-top" *ngIf="!isHost">Only the host can submit validation</div>
+  <material-button class="btn" raised (trigger)="submitValidation"
+                   *ngIf="isHost">
+    Submit validation
+  </material-button>
+
+  <modal [(visible)]="showVoteDialog">
+    <material-dialog class="vote-dialog">
+      <h1 header class="vote-header">Submit your vote</h1>
+      <div class="votes-description">
+        Does the answer "{{voteTargetAnswer}}" make sense for category
+        "{{voteTargetCategory}}"?
+      </div>
+
+      <div class="votes">
+        <div class="votes-yes">
+          Yes: {{currentYesVotes}}
+        </div>
+        <div class="votes-no">
+          No: {{currentNoVotes}}
+        </div>
+      </div>
+
+      <div footer>
+        <material-button raised class="thumb-up" (trigger)="voteYes"
+                                    [disabled]="alreadyVoted">
+          <material-icon icon="thumb_up"></material-icon>
+        </material-button>
+        <material-button raised class="thumb-down" (trigger)="voteNo"
+                                    [disabled]="alreadyVoted">
+          <material-icon icon="thumb_down"></material-icon>
+        </material-button>
+        <material-button *ngIf="isHost" raised class="close-vote"
+          (trigger)="closeVote">
+          Done
+        </material-button>
+      </div>
+    </material-dialog>
+  </modal>
+</div>

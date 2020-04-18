@@ -59,6 +59,7 @@ class ApiClient {
   }
 
   void _routeResponse(String json) {
+    print('Response: $json');
     final object = jsonDecode(json);
     String error = object['error'];
     if (isNotBlank(error)) {
