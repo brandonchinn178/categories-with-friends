@@ -3,7 +3,6 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
 
 module CategoriesWithFriends.Game.Answer
@@ -19,12 +18,10 @@ module CategoriesWithFriends.Game.Answer
   , initAnswers
   , AnswersForPlayer
   , addAnswers
-  , AnswerRating(..)
   , AnswerRatings
   , rateAnswers
   ) where
 
-import Data.Aeson (FromJSON(..), ToJSON(..), object, withObject, (.:), (.=))
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
@@ -48,28 +45,7 @@ data AnswerStatus = AnswersAccepted | AnswersLocked | AnswersRated
 data AnswerInfo (status :: AnswerStatus) where
   MaybeAnswer  :: Maybe Answer -> AnswerInfo 'AnswersAccepted
   LockedAnswer :: Answer -> AnswerInfo 'AnswersLocked
-  RatedAnswer  :: Answer -> AnswerRating -> AnswerInfo 'AnswersRated
-
-{- Validation Result -}
-
-data AnswerRating = AnswerRating
-  { isValid     :: Bool
-  , worthDouble :: Bool
-    -- ^ If True, this answer deserves double points, for when an answer is
-    -- alliterative
-  } deriving (Show)
-
-instance ToJSON AnswerRating where
-  toJSON AnswerRating{..} = object
-    [ "is_valid" .= isValid
-    , "worth_double" .= worthDouble
-    ]
-
-instance FromJSON AnswerRating where
-  parseJSON = withObject "AnswerRating" $ \o ->
-    AnswerRating
-      <$> o .: "is_valid"
-      <*> o .: "worth_double"
+  RatedAnswer  :: Answer -> Int -> AnswerInfo 'AnswersRated
 
 {- Queries -}
 
@@ -81,13 +57,13 @@ getAnswers = fmap (fmap fromLockedAnswer) . unPlayerAnswers
     fromLockedAnswer :: AnswerInfo 'AnswersLocked -> Answer
     fromLockedAnswer (LockedAnswer answer) = answer
 
-type AllRatedAnswers = Map PlayerName (Map Category (Answer, AnswerRating))
+type AllRatedAnswers = Map PlayerName (Map Category (Answer, Int))
 
 getRatedAnswers :: PlayerAnswers 'AnswersRated -> AllRatedAnswers
 getRatedAnswers = fmap (fmap fromRatedAnswer) . unPlayerAnswers
   where
-    fromRatedAnswer :: AnswerInfo 'AnswersRated -> (Answer, AnswerRating)
-    fromRatedAnswer (RatedAnswer answer result) = (answer, result)
+    fromRatedAnswer :: AnswerInfo 'AnswersRated -> (Answer, Int)
+    fromRatedAnswer (RatedAnswer answer score) = (answer, score)
 
 {- Actions -}
 
@@ -130,7 +106,7 @@ tryLockAnswers = traverse tryLockByCategory
       MaybeAnswer (Just answer) -> Just $ LockedAnswer answer
       MaybeAnswer Nothing -> Nothing
 
-type AnswerRatings = PlayerAnswersMap AnswerRating
+type AnswerRatings = PlayerAnswersMap Int
 
 -- | Set the given ratings for the players' answers. Errors if an answer for a
 -- player and category does not exist in the input.

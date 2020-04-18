@@ -33,7 +33,7 @@ import CategoriesWithFriends.ActiveGame (ActiveGame(..))
 import CategoriesWithFriends.Errors (ServerError(..))
 import CategoriesWithFriends.Events (Event(..))
 import CategoriesWithFriends.Game
-import CategoriesWithFriends.Game.Answer (Answer, AnswerRating)
+import CategoriesWithFriends.Game.Answer (Answer, AnswerRatings)
 import CategoriesWithFriends.Game.Category (Category)
 import CategoriesWithFriends.Game.Player (PlayerName)
 import CategoriesWithFriends.Game.Round (GameRoundStatus(..))
@@ -191,7 +191,7 @@ registerAnswers playerName playerAnswers activeGame@ActiveGame{game} =
     throwUnexpectedEvent = throwIO . UnexpectedEventError "submit_answers"
 
 -- | Register the given answer ratings and send the results to everyone.
-registerRatings :: Map PlayerName (Map Category AnswerRating) -> ActiveGame -> IO ActiveGame
+registerRatings :: AnswerRatings -> ActiveGame -> IO ActiveGame
 registerRatings ratings activeGame@ActiveGame{game} =
   case getState game of
     GameCreated -> throwUnexpectedEvent "game hasn't started"
