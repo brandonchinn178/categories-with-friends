@@ -66,9 +66,9 @@ servePlayer activeGameVar playerName playerConn cleanupGame =
               -- if so, and if player hasn't answered yet, register their
               -- answers as no answers
               hasRoundExpired <- timeIsEarlierThan 5 . deadline . getRoundInfo $ game
-              if not hasRoundExpired || hasPlayerAnswered playerName game
-                then return activeGame
-                else registerAnswers playerName mempty activeGame
+              if hasRoundExpired
+                then setGameAndMessageAll (forceLockAnswers game) startValidationMessage activeGame
+                else return activeGame
             _ -> return activeGame
 
         Just event -> do

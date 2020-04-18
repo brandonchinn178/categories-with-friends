@@ -9,12 +9,12 @@ module CategoriesWithFriends.Game.Round
   , GameRoundStatus(..)
     -- * Queries
   , getRoundInfo
-  , hasPlayerAnswered
   , getAnswers
   , getRatedAnswers
     -- * Actions
   , generateRound
   , addAnswers
+  , forceLockAnswers
   , rateAnswers
   ) where
 
@@ -60,9 +60,6 @@ type family GameRoundAnswerStatus (status :: GameRoundStatus) :: AnswerStatus wh
 
 getRoundInfo :: GameRound status -> GameRoundInfo
 getRoundInfo = roundInfo
-
-hasPlayerAnswered :: PlayerName -> GameRound 'RoundBeingAnswered -> Bool
-hasPlayerAnswered playerName = Answer.hasPlayerAnswered playerName . answers
 
 getAnswers :: GameRound 'RoundBeingRated -> AllAnswers
 getAnswers = Answer.getAnswers . answers
@@ -128,6 +125,12 @@ addAnswers playerName playerAnswers gameRound =
   where
     updateRound (Right lockedAnswers) = Right gameRound { answers = lockedAnswers }
     updateRound (Left updatedAnswers) = Left gameRound { answers = updatedAnswers }
+
+-- | Force lock the answers of everyone who hasn't answered yet.
+forceLockAnswers :: GameRound 'RoundBeingAnswered -> GameRound 'RoundBeingRated
+forceLockAnswers gameRound = updateRound . Answer.forceLockAnswers . answers $ gameRound
+  where
+    updateRound lockedAnswers = gameRound { answers = lockedAnswers }
 
 -- | Set the given ratings for the players' answers. Errors if an answer for a
 -- player and category does not exist in the input.

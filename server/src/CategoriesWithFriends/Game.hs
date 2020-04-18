@@ -29,9 +29,9 @@ module CategoriesWithFriends.Game
     -- * Starting a round
   , startRound
     -- * Handle player answers
-  , hasPlayerAnswered
   , addAnswers
   , AddAnswersResult(..)
+  , forceLockAnswers
   , rateAnswers
   , RoundDoneResult(..)
     -- * Ending a round
@@ -187,9 +187,6 @@ startRound game = do
 
 {- Handle player answers -}
 
-hasPlayerAnswered :: PlayerName -> Game ('GameRunning 'RoundBeingAnswered) -> Bool
-hasPlayerAnswered playerName = withCurrRound (Round.hasPlayerAnswered playerName)
-
 data AddAnswersResult
   = WaitForOtherPlayers (Game ('GameRunning 'RoundBeingAnswered))
   | GoToRatingPhase (Game ('GameRunning 'RoundBeingRated))
@@ -205,6 +202,12 @@ addAnswers playerName playerAnswers game = withCurrRound (updateGame . Round.add
   where
     updateGame (Right lockedRound) = GoToRatingPhase $ game { state = GameRoundBeingRated lockedRound }
     updateGame (Left updatedRound) = WaitForOtherPlayers $ game { state = GameRoundBeingAnswered updatedRound }
+
+-- | Force lock the answers of everyone who hasn't answered yet.
+forceLockAnswers :: Game ('GameRunning 'RoundBeingAnswered) -> Game ('GameRunning 'RoundBeingRated)
+forceLockAnswers game = withCurrRound (updateGame . Round.forceLockAnswers) game
+  where
+    updateGame lockedRound = game { state = GameRoundBeingRated lockedRound }
 
 -- | Set the given ratings for the players' answers.
 -- Errors if an answer for a player and category does not exist in the input.
