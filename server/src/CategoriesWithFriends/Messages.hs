@@ -22,23 +22,27 @@ data Message
       }
     -- ^ send the current host and player list to everyone
   | StartRoundMessage
-      { roundInfo :: GameRoundInfo
+      { host      :: PlayerName
+      , roundInfo :: GameRoundInfo
       }
     -- ^ send information to start a round
   | StartValidationMessage
-      { roundInfo :: GameRoundInfo
+      { host      :: PlayerName
+      , roundInfo :: GameRoundInfo
       , answers   :: AllAnswers
       }
     -- ^ send everyone's answers so the host can validate
   | EndRoundMessage
-      { roundInfo    :: GameRoundInfo
+      { host         :: PlayerName
+      , roundInfo    :: GameRoundInfo
       , ratedAnswers :: AllRatedAnswers
       , scores       :: Map PlayerName Int
       , nextRound    :: Bool
       }
     -- ^ send the results of the game so far
   | SendToAllMessage
-      { payload :: Value
+      { host    :: PlayerName
+      , payload :: Value
       }
     -- ^ send a generic payload to everyone
   deriving (Show)
@@ -53,24 +57,28 @@ instance ToJSON Message where
           [ "players" .= players
           , "host" .= host
           ]
-        StartRoundMessage{ roundInfo = GameRoundInfo{..} } ->
-          [ "round_num" .= roundNum
+        StartRoundMessage{ roundInfo = GameRoundInfo{..}, .. } ->
+          [ "host" .= host
+          , "round_num" .= roundNum
           , "categories" .= categories
           , "letter" .= letter
           , "end_time" .= formatISO8601 deadline
           ]
         StartValidationMessage{..} ->
-          [ "round_num" .= roundNum roundInfo
+          [ "host" .= host
+          , "round_num" .= roundNum roundInfo
           , "answers" .= answers
           ]
         EndRoundMessage{..} ->
-          [ "round_num" .= roundNum roundInfo
+          [ "host" .= host
+          , "round_num" .= roundNum roundInfo
           , "answers" .= ratedAnswers
           , "scores" .= scores
           , "next_round" .= nextRound
           ]
         SendToAllMessage{..} ->
-          [ "payload" .= payload
+          [ "host" .= host
+          , "payload" .= payload
           ]
 
       messageId :: Message -> String

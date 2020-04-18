@@ -66,9 +66,10 @@ servePlayer activeGameVar playerName playerConn cleanupGame =
         EndValidationEvent ratings ->
           handleEventOnlyHost $ registerRatings ratings
         SendToAllEvent payload ->
-          handleEvent $ \activeGame -> do
+          handleEvent $ \activeGame@ActiveGame{game} -> do
             sendToAll activeGame $ SendToAllMessage
-              { payload = payload
+              { host = getHost game
+              , payload = payload
               }
             return activeGame
   where
@@ -217,18 +218,21 @@ refreshPlayerListMessage game = RefreshPlayerListMessage
 
 startRoundMessage :: Game ('GameRunning 'RoundBeingAnswered) -> Message
 startRoundMessage game = StartRoundMessage
-  { roundInfo = getRoundInfo game
+  { host = getHost game
+  , roundInfo = getRoundInfo game
   }
 
 startValidationMessage :: Game ('GameRunning 'RoundBeingRated) -> Message
 startValidationMessage game = StartValidationMessage
-  { roundInfo = getRoundInfo game
+  { host = getHost game
+  , roundInfo = getRoundInfo game
   , answers = getAnswers game
   }
 
 endRoundMessage :: (HasCurrentRound status, CurrentRoundStatus status ~ 'RoundDone) => Game status -> Message
 endRoundMessage game = EndRoundMessage
-  { roundInfo = getRoundInfo game
+  { host = getHost game
+  , roundInfo = getRoundInfo game
   , ratedAnswers = getRatedAnswers game
   , scores = getScores game
   , nextRound = hasNextRound game
