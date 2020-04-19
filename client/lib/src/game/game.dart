@@ -161,6 +161,7 @@ class GameComponent implements OnActivate {
   GameComponent(this._apiClient) {
     _uri = Uri.base;
     _apiClient
+      ..onHostChange.listen((host) => _host = host)
       ..onPlayerList.listen(_updatePlayerList)
       ..onStartRound.listen(_onStartRound)
       ..onStartValidation.listen(_onStartValidation)
@@ -178,7 +179,6 @@ class GameComponent implements OnActivate {
   void _updatePlayerList(PlayerList value) {
     _clearError();
     _playerList = value;
-    _host = value.host;
   }
 
   void _onStartRound(StartRound value) {

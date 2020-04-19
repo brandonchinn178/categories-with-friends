@@ -41,6 +41,10 @@ class ApiClient {
   final _onError = StreamController<String>.broadcast();
   Stream<String> get onError => _onError.stream;
 
+  String _host;
+  final _onHostChange = StreamController<String>.broadcast();
+  Stream<String> get onHostChange => _onHostChange.stream;
+
   WebSocket _webSocket;
 
   void init(String gameId, String player) {
@@ -75,6 +79,12 @@ class ApiClient {
         default:
           throw ArgumentError('Error $error is unhandled');
       }
+    }
+
+    final receivedHost = object['host'];
+    if (receivedHost != _host) {
+      _host = receivedHost;
+      _onHostChange.add(_host);
     }
 
     final event = object['event'];
