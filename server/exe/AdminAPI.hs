@@ -29,6 +29,7 @@ import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 
 import CategoriesWithFriends (ActiveGame(..))
+import CategoriesWithFriends.Game (Game)
 import qualified CategoriesWithFriends.Game as Game
 import qualified CategoriesWithFriends.Game.Round as Round
 
@@ -71,7 +72,8 @@ initAdminContext = do
 adminHome :: MVar Platform -> AdminUser -> Handler Markup
 adminHome platformVar adminUser = do
   platform <- liftIO $ readMVar platformVar
-  pure $ renderHome platform adminUser
+  games <- liftIO $ mapM (traverse readMVar) $ Map.toList platform
+  pure $ renderHome games adminUser
 
 adminGame :: MVar Platform -> AdminUser -> Text -> Handler Markup
 adminGame platformVar adminUser gameId = do
@@ -84,13 +86,17 @@ adminGame platformVar adminUser gameId = do
 
 {- Views -}
 
-renderHome :: Platform -> AdminUser -> Markup
-renderHome platform = renderHtml Nothing $ do
+renderHome :: [(Text, ActiveGame)] -> AdminUser -> Markup
+renderHome games = renderHtml Nothing $ do
   H.p "Running games:"
-  H.ul $
-    forM_ (Map.keys platform) $ \gameId ->
-      -- TODO: show status and start time, sort by start time, then status
-      H.li $ H.a ! A.href ("/admin/" <> H.textValue gameId) $ H.text gameId
+  renderTable' (Just ["Game ID", "Status", "Start Time"]) $
+    flip map (sortOn getSortKey games) $ \(gameId, ActiveGame{..}) ->
+      [ H.a ! A.href ("/admin/" <> H.textValue gameId) $ H.text gameId
+      , H.text $ renderStatus game
+      , H.text $ Text.pack $ show startTime
+      ]
+  where
+    getSortKey (_, ActiveGame{..}) = (startTime, Game.getComparableState game)
 
 renderGame :: Text -> ActiveGame -> AdminUser -> Markup
 renderGame gameId ActiveGame{..} = renderHtml (Just gameId) $ do
@@ -120,20 +126,20 @@ renderGame gameId ActiveGame{..} = renderHtml (Just gameId) $ do
         then "--"
         else Text.unwords [answer, if score > 0 then "✔" else "✗"]
   where
-    renderGameInfo = do
-      let showRoundNum = show . Round.roundNum . Round.getRoundInfo
-          inProgressStatus gameRound = "In Progress (round " <> showRoundNum gameRound <> ")"
+    renderGameInfo =
       renderTable
         [ TableData "Start time" $ show startTime
         , TableData "Host" $ Game.getHost game
-        , TableData "Players" $ renderList $ Game.getPlayers game
-        , TableData "Status" $ Text.pack $
-            case Game.getState game of
-              Game.GameCreated{} -> "Created"
-              Game.GameRoundBeingAnswered gameRound -> inProgressStatus gameRound
-              Game.GameRoundBeingRated gameRound -> inProgressStatus gameRound
-              Game.GameRoundFinished gameRound -> inProgressStatus gameRound
-              Game.GameFinished{} -> "Finished"
+        , TableData "Players" $ renderPlayers $ Game.getPlayers game
+        , TableData "Status" $ renderStatus game
+        ]
+
+    renderPlayers players = renderList $ flip map players $ \player ->
+      Text.unwords
+        [ player
+        , if player `Map.member` activePlayers
+            then "(connected)"
+            else "(disconnected)"
         ]
 
     renderScores = do
@@ -161,6 +167,17 @@ renderGame gameId ActiveGame{..} = renderHtml (Just gameId) $ do
                 Just answer -> H.text $ renderAnswer answer
                 Nothing -> pure ()
           in H.text category : map renderPlayer players
+
+renderStatus :: Game status -> Text
+renderStatus game = Text.pack $ case Game.getState game of
+  Game.GameCreated{} -> "Created"
+  Game.GameRoundBeingAnswered gameRound -> inProgressStatus gameRound
+  Game.GameRoundBeingRated gameRound -> inProgressStatus gameRound
+  Game.GameRoundFinished gameRound -> inProgressStatus gameRound
+  Game.GameFinished{} -> "Finished"
+  where
+    inProgressStatus gameRound = "In Progress (round " <> showRoundNum gameRound <> ")"
+    showRoundNum = show . Round.roundNum . Round.getRoundInfo
 
 renderError :: Text -> Markup
 renderError msg = H.p $ "Error: " <> H.text msg

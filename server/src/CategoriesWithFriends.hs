@@ -45,7 +45,7 @@ initGameWithHost host = do
   now <- getCurrentTime
   return ActiveGame
     { game = initGame host
-    , playerState = Map.empty
+    , activePlayers = Map.empty
     , startTime = now
     }
 
@@ -111,9 +111,9 @@ servePlayer activeGameVar playerName playerConn cleanupGame =
 
     cleanupPlayer = modifyMVar_ activeGameVar $ \activeGame -> do
       debugT $ "Player " ++ show playerName ++ " disconnected"
-      let updatedPlayerState = Map.delete playerName (playerState activeGame)
-      when (Map.null updatedPlayerState) cleanupGame
-      return $ activeGame { playerState = updatedPlayerState }
+      let updatedActivePlayers = Map.delete playerName (activePlayers activeGame)
+      when (Map.null updatedActivePlayers) cleanupGame
+      return $ activeGame { activePlayers = updatedActivePlayers }
 
 hasTimedOut :: ActiveGame -> IO Bool
 hasTimedOut ActiveGame{startTime} = do
@@ -140,10 +140,10 @@ setupPlayer playerName playerConn activeGame = do
 
   state <- (playerConn,) <$> myThreadId
   return updatedActiveGame
-    { playerState = Map.insert playerName state $ playerState activeGame
+    { activePlayers = Map.insert playerName state $ activePlayers activeGame
     }
   where
-    isPlayerAlreadyConnected = playerName `Map.member` playerState activeGame
+    isPlayerAlreadyConnected = playerName `Map.member` activePlayers activeGame
     throwCannotJoin = throwIO . CannotJoinGameError
 
     addPlayerToGame :: Game 'GameLoading -> IO ActiveGame
@@ -259,9 +259,9 @@ sendJSONData :: ToJSON a => Connection -> a -> IO ()
 sendJSONData conn = sendTextData conn . encode
 
 sendToAll :: ActiveGame -> Message -> IO ()
-sendToAll ActiveGame{playerState} message = do
+sendToAll ActiveGame{activePlayers} message = do
   debugT $ "Sending message to all players: " ++ show message
-  forM_ (Map.elems playerState) $ \(conn, _) ->
+  forM_ (Map.elems activePlayers) $ \(conn, _) ->
     sendJSONData conn message
 
 {- Exception helpers -}
