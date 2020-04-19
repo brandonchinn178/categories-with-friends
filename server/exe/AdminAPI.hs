@@ -90,11 +90,13 @@ renderHome :: [(Text, ActiveGame)] -> AdminUser -> Markup
 renderHome games = renderHtml Nothing $ do
   H.p "Running games:"
   renderTable' (Just ["Game ID", "Status", "Start Time"]) $
-    flip map games $ \(gameId, ActiveGame{..}) ->
+    flip map (sortOn getSortKey games) $ \(gameId, ActiveGame{..}) ->
       [ H.a ! A.href ("/admin/" <> H.textValue gameId) $ H.text gameId
       , H.text $ renderStatus game
       , H.text $ Text.pack $ show startTime
       ]
+  where
+    getSortKey (_, ActiveGame{..}) = (startTime, Game.getComparableState game)
 
 renderGame :: Text -> ActiveGame -> AdminUser -> Markup
 renderGame gameId ActiveGame{..} = renderHtml (Just gameId) $ do
