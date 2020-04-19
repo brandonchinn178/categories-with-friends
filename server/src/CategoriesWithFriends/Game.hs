@@ -102,7 +102,7 @@ getScores game = Map.unionsWith (+) $ emptyScores : pastScores
     emptyScores = Map.fromList . map (, 0) . getPlayers $ game
     pastScores = map scoreRound . pastRounds $ game
     scoreRound gameRound = scorePlayer <$> Round.getRatedAnswers gameRound
-    scorePlayer = Map.size . Map.filter ((== True) . snd)
+    scorePlayer = sum . Map.map snd
 
 getPastRounds :: Game status -> [GameRound 'RoundDone]
 getPastRounds = pastRounds

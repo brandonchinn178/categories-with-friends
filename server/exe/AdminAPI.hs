@@ -115,10 +115,10 @@ renderGame gameId ActiveGame{..} = renderHtml (Just gameId) $ do
   -- render all past games
   forM_ (reverse $ Game.getPastRounds game) $ \gameRound -> do
     renderRoundInfo gameRound "Finished"
-    renderAnswers gameRound (Round.getRatedAnswers gameRound) $ \(answer, isValid) ->
+    renderAnswers gameRound (Round.getRatedAnswers gameRound) $ \(answer, score) ->
       if Text.null answer
         then "--"
-        else Text.unwords [answer, if isValid then "✔" else "✗"]
+        else Text.unwords [answer, if score > 0 then "✔" else "✗"]
   where
     renderGameInfo = do
       let showRoundNum = show . Round.roundNum . Round.getRoundInfo

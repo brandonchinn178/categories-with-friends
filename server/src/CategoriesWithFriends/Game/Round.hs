@@ -46,7 +46,7 @@ data GameRoundInfo = GameRoundInfo
   , categories :: [Category]
   , letter     :: Char
   , deadline   :: UTCTime
-  }
+  } deriving (Show)
 
 data GameRoundStatus = RoundBeingAnswered | RoundBeingRated | RoundDone
 
