@@ -66,8 +66,11 @@ servePlayer activeGameVar playerName playerConn cleanupGame =
         EndValidationEvent ratings ->
           handleEventOnlyHost $ registerRatings ratings
         SendToAllEvent payload ->
-          handleEvent $ \activeGame -> do
-            sendToAll activeGame $ SendToAllMessage payload
+          handleEvent $ \activeGame@ActiveGame{game} -> do
+            sendToAll activeGame $ SendToAllMessage
+              { host = getHost game
+              , payload = payload
+              }
             return activeGame
   where
     pingDelay = 30 -- seconds
@@ -208,16 +211,32 @@ registerRatings ratings activeGame@ActiveGame{game} =
 {- Messages -}
 
 refreshPlayerListMessage :: Game 'GameLoading -> Message
-refreshPlayerListMessage game = RefreshPlayerListMessage (getHost game) (getPlayers game)
+refreshPlayerListMessage game = RefreshPlayerListMessage
+  { host = getHost game
+  , players = getPlayers game
+  }
 
 startRoundMessage :: Game ('GameRunning 'RoundBeingAnswered) -> Message
-startRoundMessage game = StartRoundMessage (getRoundInfo game)
+startRoundMessage game = StartRoundMessage
+  { host = getHost game
+  , roundInfo = getRoundInfo game
+  }
 
 startValidationMessage :: Game ('GameRunning 'RoundBeingRated) -> Message
-startValidationMessage game = StartValidationMessage (getRoundInfo game) (getAnswers game)
+startValidationMessage game = StartValidationMessage
+  { host = getHost game
+  , roundInfo = getRoundInfo game
+  , answers = getAnswers game
+  }
 
 endRoundMessage :: (HasCurrentRound status, CurrentRoundStatus status ~ 'RoundDone) => Game status -> Message
-endRoundMessage game = EndRoundMessage (getRoundInfo game) (getRatedAnswers game) (getScores game) (hasNextRound game)
+endRoundMessage game = EndRoundMessage
+  { host = getHost game
+  , roundInfo = getRoundInfo game
+  , ratedAnswers = getRatedAnswers game
+  , scores = getScores game
+  , nextRound = hasNextRound game
+  }
 
 {- ActiveGame helpers -}
 
