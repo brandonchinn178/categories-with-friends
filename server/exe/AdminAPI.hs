@@ -88,10 +88,11 @@ adminGame platformVar adminUser gameId = do
 renderHome :: Platform -> AdminUser -> Markup
 renderHome platform = renderHtml Nothing $ do
   H.p "Running games:"
-  H.ul $
-    forM_ (Map.keys platform) $ \gameId ->
+  renderTable' (Just ["Game ID"]) $
+    flip map (Map.keys platform) $ \gameId ->
       -- TODO: show status and start time, sort by start time, then status
-      H.li $ H.a ! A.href ("/admin/" <> H.textValue gameId) $ H.text gameId
+      [ H.a ! A.href ("/admin/" <> H.textValue gameId) $ H.text gameId
+      ]
 
 renderGame :: Text -> ActiveGame -> AdminUser -> Markup
 renderGame gameId ActiveGame{..} = renderHtml (Just gameId) $ do
