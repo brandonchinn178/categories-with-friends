@@ -29,6 +29,7 @@ import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 
 import CategoriesWithFriends (ActiveGame(..))
+import CategoriesWithFriends.Game (Game)
 import qualified CategoriesWithFriends.Game as Game
 import qualified CategoriesWithFriends.Game.Round as Round
 
@@ -120,20 +121,12 @@ renderGame gameId ActiveGame{..} = renderHtml (Just gameId) $ do
         then "--"
         else Text.unwords [answer, if score > 0 then "✔" else "✗"]
   where
-    renderGameInfo = do
-      let showRoundNum = show . Round.roundNum . Round.getRoundInfo
-          inProgressStatus gameRound = "In Progress (round " <> showRoundNum gameRound <> ")"
+    renderGameInfo =
       renderTable
         [ TableData "Start time" $ show startTime
         , TableData "Host" $ Game.getHost game
         , TableData "Players" $ renderPlayers $ Game.getPlayers game
-        , TableData "Status" $ Text.pack $
-            case Game.getState game of
-              Game.GameCreated{} -> "Created"
-              Game.GameRoundBeingAnswered gameRound -> inProgressStatus gameRound
-              Game.GameRoundBeingRated gameRound -> inProgressStatus gameRound
-              Game.GameRoundFinished gameRound -> inProgressStatus gameRound
-              Game.GameFinished{} -> "Finished"
+        , TableData "Status" $ renderStatus game
         ]
 
     renderPlayers players = renderList $ flip map players $ \player ->
@@ -169,6 +162,17 @@ renderGame gameId ActiveGame{..} = renderHtml (Just gameId) $ do
                 Just answer -> H.text $ renderAnswer answer
                 Nothing -> pure ()
           in H.text category : map renderPlayer players
+
+renderStatus :: Game status -> Text
+renderStatus game = Text.pack $ case Game.getState game of
+  Game.GameCreated{} -> "Created"
+  Game.GameRoundBeingAnswered gameRound -> inProgressStatus gameRound
+  Game.GameRoundBeingRated gameRound -> inProgressStatus gameRound
+  Game.GameRoundFinished gameRound -> inProgressStatus gameRound
+  Game.GameFinished{} -> "Finished"
+  where
+    inProgressStatus gameRound = "In Progress (round " <> showRoundNum gameRound <> ")"
+    showRoundNum = show . Round.roundNum . Round.getRoundInfo
 
 renderError :: Text -> Markup
 renderError msg = H.p $ "Error: " <> H.text msg
