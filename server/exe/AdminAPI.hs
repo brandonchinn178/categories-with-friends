@@ -126,7 +126,7 @@ renderGame gameId ActiveGame{..} = renderHtml (Just gameId) $ do
       renderTable
         [ TableData "Start time" $ show startTime
         , TableData "Host" $ Game.getHost game
-        , TableData "Players" $ renderList $ Game.getPlayers game
+        , TableData "Players" $ renderPlayers $ Game.getPlayers game
         , TableData "Status" $ Text.pack $
             case Game.getState game of
               Game.GameCreated{} -> "Created"
@@ -134,6 +134,14 @@ renderGame gameId ActiveGame{..} = renderHtml (Just gameId) $ do
               Game.GameRoundBeingRated gameRound -> inProgressStatus gameRound
               Game.GameRoundFinished gameRound -> inProgressStatus gameRound
               Game.GameFinished{} -> "Finished"
+        ]
+
+    renderPlayers players = renderList $ flip map players $ \player ->
+      Text.unwords
+        [ player
+        , if player `Map.member` activePlayers
+            then "(connected)"
+            else "(disconnected)"
         ]
 
     renderScores = do
