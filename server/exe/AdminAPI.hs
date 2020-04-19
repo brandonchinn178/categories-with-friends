@@ -72,7 +72,8 @@ initAdminContext = do
 adminHome :: MVar Platform -> AdminUser -> Handler Markup
 adminHome platformVar adminUser = do
   platform <- liftIO $ readMVar platformVar
-  pure $ renderHome platform adminUser
+  games <- liftIO $ mapM (traverse readMVar) $ Map.toList platform
+  pure $ renderHome games adminUser
 
 adminGame :: MVar Platform -> AdminUser -> Text -> Handler Markup
 adminGame platformVar adminUser gameId = do
@@ -85,13 +86,14 @@ adminGame platformVar adminUser gameId = do
 
 {- Views -}
 
-renderHome :: Platform -> AdminUser -> Markup
-renderHome platform = renderHtml Nothing $ do
+renderHome :: [(Text, ActiveGame)] -> AdminUser -> Markup
+renderHome games = renderHtml Nothing $ do
   H.p "Running games:"
-  renderTable' (Just ["Game ID"]) $
-    flip map (Map.keys platform) $ \gameId ->
-      -- TODO: show status and start time, sort by start time, then status
+  renderTable' (Just ["Game ID", "Status", "Start Time"]) $
+    flip map games $ \(gameId, ActiveGame{..}) ->
       [ H.a ! A.href ("/admin/" <> H.textValue gameId) $ H.text gameId
+      , H.text $ renderStatus game
+      , H.text $ Text.pack $ show startTime
       ]
 
 renderGame :: Text -> ActiveGame -> AdminUser -> Markup
