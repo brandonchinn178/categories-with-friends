@@ -14,6 +14,7 @@ module CategoriesWithFriends.Game
   , getHost
   , getPlayers
   , getState
+  , getComparableState
   , getScores
   , getPastRounds
     -- * Current round information
@@ -95,6 +96,19 @@ getPlayers = Set.toList . players
 getState :: Game status -> GameState status
 getState = state
 
+-- | A new type that can only be compared.
+newtype Comparable = Comparable Int
+  deriving (Eq, Ord)
+
+-- | Return the state of the game as a type that is comparable.
+getComparableState :: Game status -> Comparable
+getComparableState game = Comparable $ case state game of
+  GameCreated{} -> 0
+  GameRoundBeingAnswered{} -> 1
+  GameRoundBeingRated{} -> 2
+  GameRoundFinished{} -> 3
+  GameFinished{} -> 4
+
 getScores :: Game status -> Map PlayerName Int
 getScores game = Map.unionsWith (+) $ emptyScores : pastScores
   where
@@ -102,7 +116,7 @@ getScores game = Map.unionsWith (+) $ emptyScores : pastScores
     emptyScores = Map.fromList . map (, 0) . getPlayers $ game
     pastScores = map scoreRound . pastRounds $ game
     scoreRound gameRound = scorePlayer <$> Round.getRatedAnswers gameRound
-    scorePlayer = Map.size . Map.filter ((== True) . snd)
+    scorePlayer = sum . Map.map snd
 
 getPastRounds :: Game status -> [GameRound 'RoundDone]
 getPastRounds = pastRounds

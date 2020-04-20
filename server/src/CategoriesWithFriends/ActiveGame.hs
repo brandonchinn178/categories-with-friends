@@ -23,8 +23,8 @@ import CategoriesWithFriends.Game.Player (PlayerName)
 
 data ActiveGame where
   ActiveGame :: forall status.
-    { game        :: Game status
-    , playerState :: Map PlayerName (Connection, ThreadId)
-    , startTime   :: UTCTime
+    { game          :: Game status
+    , activePlayers :: Map PlayerName (Connection, ThreadId)
+    , startTime     :: UTCTime
     }
     -> ActiveGame

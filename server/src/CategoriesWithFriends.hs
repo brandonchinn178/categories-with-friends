@@ -33,7 +33,7 @@ import CategoriesWithFriends.ActiveGame (ActiveGame(..))
 import CategoriesWithFriends.Errors (ServerError(..))
 import CategoriesWithFriends.Events (Event(..))
 import CategoriesWithFriends.Game
-import CategoriesWithFriends.Game.Answer (Answer)
+import CategoriesWithFriends.Game.Answer (Answer, AnswerRatings)
 import CategoriesWithFriends.Game.Category (Category)
 import CategoriesWithFriends.Game.Player (PlayerName)
 import CategoriesWithFriends.Game.Round (GameRoundStatus(..))
@@ -45,7 +45,7 @@ initGameWithHost host = do
   now <- getCurrentTime
   return ActiveGame
     { game = initGame host
-    , playerState = Map.empty
+    , activePlayers = Map.empty
     , startTime = now
     }
 
@@ -66,8 +66,11 @@ servePlayer activeGameVar playerName playerConn cleanupGame =
         EndValidationEvent ratings ->
           handleEventOnlyHost $ registerRatings ratings
         SendToAllEvent payload ->
-          handleEvent $ \activeGame -> do
-            sendToAll activeGame $ SendToAllMessage payload
+          handleEvent $ \activeGame@ActiveGame{game} -> do
+            sendToAll activeGame $ SendToAllMessage
+              { host = getHost game
+              , payload = payload
+              }
             return activeGame
   where
     pingDelay = 30 -- seconds
@@ -108,9 +111,9 @@ servePlayer activeGameVar playerName playerConn cleanupGame =
 
     cleanupPlayer = modifyMVar_ activeGameVar $ \activeGame -> do
       debugT $ "Player " ++ show playerName ++ " disconnected"
-      let updatedPlayerState = Map.delete playerName (playerState activeGame)
-      when (Map.null updatedPlayerState) cleanupGame
-      return $ activeGame { playerState = updatedPlayerState }
+      let updatedActivePlayers = Map.delete playerName (activePlayers activeGame)
+      when (Map.null updatedActivePlayers) cleanupGame
+      return $ activeGame { activePlayers = updatedActivePlayers }
 
 hasTimedOut :: ActiveGame -> IO Bool
 hasTimedOut ActiveGame{startTime} = do
@@ -137,10 +140,10 @@ setupPlayer playerName playerConn activeGame = do
 
   state <- (playerConn,) <$> myThreadId
   return updatedActiveGame
-    { playerState = Map.insert playerName state $ playerState activeGame
+    { activePlayers = Map.insert playerName state $ activePlayers activeGame
     }
   where
-    isPlayerAlreadyConnected = playerName `Map.member` playerState activeGame
+    isPlayerAlreadyConnected = playerName `Map.member` activePlayers activeGame
     throwCannotJoin = throwIO . CannotJoinGameError
 
     addPlayerToGame :: Game 'GameLoading -> IO ActiveGame
@@ -191,7 +194,7 @@ registerAnswers playerName playerAnswers activeGame@ActiveGame{game} =
     throwUnexpectedEvent = throwIO . UnexpectedEventError "submit_answers"
 
 -- | Register the given answer ratings and send the results to everyone.
-registerRatings :: Map PlayerName (Map Category Bool) -> ActiveGame -> IO ActiveGame
+registerRatings :: AnswerRatings -> ActiveGame -> IO ActiveGame
 registerRatings ratings activeGame@ActiveGame{game} =
   case getState game of
     GameCreated -> throwUnexpectedEvent "game hasn't started"
@@ -208,16 +211,32 @@ registerRatings ratings activeGame@ActiveGame{game} =
 {- Messages -}
 
 refreshPlayerListMessage :: Game 'GameLoading -> Message
-refreshPlayerListMessage game = RefreshPlayerListMessage (getHost game) (getPlayers game)
+refreshPlayerListMessage game = RefreshPlayerListMessage
+  { host = getHost game
+  , players = getPlayers game
+  }
 
 startRoundMessage :: Game ('GameRunning 'RoundBeingAnswered) -> Message
-startRoundMessage game = StartRoundMessage (getRoundInfo game)
+startRoundMessage game = StartRoundMessage
+  { host = getHost game
+  , roundInfo = getRoundInfo game
+  }
 
 startValidationMessage :: Game ('GameRunning 'RoundBeingRated) -> Message
-startValidationMessage game = StartValidationMessage (getRoundInfo game) (getAnswers game)
+startValidationMessage game = StartValidationMessage
+  { host = getHost game
+  , roundInfo = getRoundInfo game
+  , answers = getAnswers game
+  }
 
 endRoundMessage :: (HasCurrentRound status, CurrentRoundStatus status ~ 'RoundDone) => Game status -> Message
-endRoundMessage game = EndRoundMessage (getRoundInfo game) (getRatedAnswers game) (getScores game) (hasNextRound game)
+endRoundMessage game = EndRoundMessage
+  { host = getHost game
+  , roundInfo = getRoundInfo game
+  , ratedAnswers = getRatedAnswers game
+  , scores = getScores game
+  , nextRound = hasNextRound game
+  }
 
 {- ActiveGame helpers -}
 
@@ -240,9 +259,9 @@ sendJSONData :: ToJSON a => Connection -> a -> IO ()
 sendJSONData conn = sendTextData conn . encode
 
 sendToAll :: ActiveGame -> Message -> IO ()
-sendToAll ActiveGame{playerState} message = do
+sendToAll ActiveGame{activePlayers} message = do
   debugT $ "Sending message to all players: " ++ show message
-  forM_ (Map.elems playerState) $ \(conn, _) ->
+  forM_ (Map.elems activePlayers) $ \(conn, _) ->
     sendJSONData conn message
 
 {- Exception helpers -}

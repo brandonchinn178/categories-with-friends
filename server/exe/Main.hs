@@ -44,7 +44,7 @@ main = do
 
     forM_ expiredGames $ \(gameId, activeGameVar) -> do
       activeGame <- readMVar activeGameVar
-      forM_ (Map.elems $ playerState activeGame) $ \(_, threadId) ->
+      forM_ (Map.elems $ activePlayers activeGame) $ \(_, threadId) ->
         throwTo threadId ConnectionClosed
       debugT $ "Game " ++ show gameId ++ " killed"
 

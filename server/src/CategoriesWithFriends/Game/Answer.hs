@@ -2,6 +2,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 
 module CategoriesWithFriends.Game.Answer
@@ -44,7 +45,7 @@ data AnswerStatus = AnswersAccepted | AnswersLocked | AnswersRated
 data AnswerInfo (status :: AnswerStatus) where
   MaybeAnswer  :: Maybe Answer -> AnswerInfo 'AnswersAccepted
   LockedAnswer :: Answer -> AnswerInfo 'AnswersLocked
-  RatedAnswer  :: Answer -> Bool -> AnswerInfo 'AnswersRated
+  RatedAnswer  :: Answer -> Int -> AnswerInfo 'AnswersRated
 
 {- Queries -}
 
@@ -56,13 +57,13 @@ getAnswers = fmap (fmap fromLockedAnswer) . unPlayerAnswers
     fromLockedAnswer :: AnswerInfo 'AnswersLocked -> Answer
     fromLockedAnswer (LockedAnswer answer) = answer
 
-type AllRatedAnswers = Map PlayerName (Map Category (Answer, Bool))
+type AllRatedAnswers = Map PlayerName (Map Category (Answer, Int))
 
 getRatedAnswers :: PlayerAnswers 'AnswersRated -> AllRatedAnswers
 getRatedAnswers = fmap (fmap fromRatedAnswer) . unPlayerAnswers
   where
-    fromRatedAnswer :: AnswerInfo 'AnswersRated -> (Answer, Bool)
-    fromRatedAnswer (RatedAnswer answer isValid) = (answer, isValid)
+    fromRatedAnswer :: AnswerInfo 'AnswersRated -> (Answer, Int)
+    fromRatedAnswer (RatedAnswer answer score) = (answer, score)
 
 {- Actions -}
 
@@ -105,7 +106,7 @@ tryLockAnswers = traverse tryLockByCategory
       MaybeAnswer (Just answer) -> Just $ LockedAnswer answer
       MaybeAnswer Nothing -> Nothing
 
-type AnswerRatings = PlayerAnswersMap Bool
+type AnswerRatings = PlayerAnswersMap Int
 
 -- | Set the given ratings for the players' answers. Errors if an answer for a
 -- player and category does not exist in the input.
@@ -119,4 +120,4 @@ rateAnswers ratings = PlayerAnswers . rateByPlayer . unPlayerAnswers
     rateAnswer player category (LockedAnswer answer) =
       case Map.lookup category =<< Map.lookup player ratings of
         Nothing -> error $ "Answer for " ++ show category ++ " by " ++ show player ++ " does not have a rating"
-        Just rating -> RatedAnswer answer rating
+        Just result -> RatedAnswer answer result
