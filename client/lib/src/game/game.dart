@@ -12,6 +12,10 @@ import 'package:angular_components/material_input/material_input.dart';
 import 'package:angular_components/material_button/material_button.dart';
 import 'package:quiver/strings.dart';
 
+import 'lobby.dart';
+import 'in_round.dart';
+import 'validation.dart';
+import 'post_round.dart';
 import '../api_client.dart';
 import '../api_classes.dart';
 import '../routes.dart';
@@ -24,6 +28,8 @@ const second = const Duration(seconds: 1);
   templateUrl: 'game.html',
   styleUrls: ['game.css'],
   directives: [
+    InRoundComponent,
+    LobbyComponent,
     materialInputDirectives,
     MaterialButtonComponent,
     MaterialCheckboxComponent,
@@ -31,7 +37,9 @@ const second = const Duration(seconds: 1);
     MaterialIconComponent,
     ModalComponent,
     NgIf,
-    NgFor
+    NgFor,
+    PostRoundComponent,
+    ValidationComponent,
   ],
   exports: [Phase],
   providers: [
@@ -41,12 +49,26 @@ const second = const Duration(seconds: 1);
 )
 class GameComponent implements OnActivate {
   final ApiClient _apiClient;
+
+  PlayerList _playerList;
+  PlayerList get playerList => _playerList;
+
+  StartRound _startRound;
+  StartRound get startRound => _startRound;
+
+  StartValidation _startValidation;
+  StartValidation get startValidation => _startValidation;
+
+  EndRound _endRound;
+  EndRound get endRound => _endRound;
+
   String _gameId;
+  String get gameId => _gameId;
+
   String _player;
   String get player => _player;
 
-  bool _isHost = false;
-  bool get isHost => _isHost;
+  bool get isHost => _host == _player;
 
   Phase _phase = Phase.lobby;
   Phase get phase => _phase;
@@ -139,14 +161,11 @@ class GameComponent implements OnActivate {
   GameComponent(this._apiClient) {
     _uri = Uri.base;
     _apiClient
+      ..onHostChange.listen((host) => _host = host)
       ..onPlayerList.listen(_updatePlayerList)
-      ..onStartRound.listen(_startRound)
-      ..onStartValidation.listen(_startValidation)
-      ..onSyncValidation.listen(_onSyncValidation)
-      ..onRequestForVotes.listen(_onRequestForVotes)
-      ..onVoteValue.listen(_onVoteValue)
-      ..onCloseVoting.listen(_onCloseVoting)
-      ..onEndRound.listen(_endRound)
+      ..onStartRound.listen(_onStartRound)
+      ..onStartValidation.listen(_onStartValidation)
+      ..onEndRound.listen(_onEndRound)
       ..onError.listen(_onError);
   }
 
@@ -159,125 +178,29 @@ class GameComponent implements OnActivate {
 
   void _updatePlayerList(PlayerList value) {
     _clearError();
-    _host = value.host;
-    _players = value.players;
-    _isHost = value.host == _player;
+    _playerList = value;
   }
 
-  void _startRound(StartRound value) {
+  void _onStartRound(StartRound value) {
     _clearError();
+    _startRound = value;
     _round = value.round;
-    _categories = value.categories;
-    _letter = value.letter;
-
-    // In case the user reloads the page, calculate the end time.
-    final durationRemaining = value.endTime.difference(DateTime.now().toUtc());
-    _secondsRemaining = durationRemaining.inSeconds;
-
-    if (_secondsRemaining <= 0) {
-      submitAnswers();
-    }
-
-    _timeRemaining = _calculateTimeRemaining();
-
-    _categoryToAnswer = Map.fromIterable(_categories, value: (_) => '');
-
-    _timer = Timer.periodic(second, _updateTimer);
-    _submittedAnswers = false;
     _phase = Phase.inRound;
     _scrollToTop();
   }
 
-  String _calculateTimeRemaining() {
-    String _minutesToDisplay = '${(_secondsRemaining / 60).floor()}';
-    String _secondsToDisplay = '${_secondsRemaining % 60}';
-    return '${_minutesToDisplay.padLeft(2, '0')}:${_secondsToDisplay.padLeft(2, '0')}';
-  }
-
-  // Called once every second.
-  String _updateTimer(Timer timer) {
-    _secondsRemaining--;
-    _timeRemaining = _calculateTimeRemaining();
-    if (_secondsRemaining == 0) {
-      timer.cancel();
-      submitAnswers();
-    }
-  }
-
-  void _startValidation(StartValidation value) {
+  void _onStartValidation(StartValidation value) {
     _clearError();
-    _round = value.round;
-    _playerToCategoryToAnswers = value.playerToCategoryToAnswers;
-
-    _playerToCategoryToValid = {};
-
-    for (final player in players) {
-      for (final category in categories) {
-        // Initialize validity to true, unless answer is blank.
-        _playerToCategoryToValid[player] ??= {};
-        _playerToCategoryToValid[player][category] =
-            !isBlankAnswer(player, category);
-      }
-    }
-
+    _startValidation = value;
     _phase = Phase.validation;
     _scrollToTop();
   }
 
-  void _endRound(EndRound value) {
+  void _onEndRound(EndRound value) {
     _clearError();
-    _round = value.round;
-    _playerToCategoryToGradedAnswers = value.playerToCategoryToGradedAnswers;
-    // Temp storage of unsorted map.
-    final unsorted = value.playerToScore;
-    // Sort the map so that the highest scores come first.
-    final sortedKeys = unsorted.keys.toList()
-      ..sort((k1, k2) => unsorted[k2].compareTo(unsorted[k1]));
-    _playerToScore =
-        Map.fromIterable(sortedKeys, value: (key) => unsorted[key]);
-    _nextRound = value.nextRound;
+    _endRound = value;
     _phase = Phase.postRound;
     _scrollToTop();
-  }
-
-  void _onSyncValidation(
-      Map<String, Map<String, bool>> playerToCategoryToValid) {
-    // Host sent out the data in the first place
-    if (isHost) return;
-    _playerToCategoryToValid = playerToCategoryToValid;
-  }
-
-  // Returns {'category': _, 'player': _, 'answer': _}
-  void _onRequestForVotes(Map<String, String> data) {
-    showVoteDialog = true;
-    _alreadyVoted = false;
-    _currentYesVotes = 0;
-    _currentNoVotes = 0;
-
-    _voteTargetCategory = data['category'];
-    _voteTargetAnswer = data['answer'];
-  }
-
-  void voteYes() {
-    _apiClient.sendRequest(SendToAll.voteValue(player, true));
-    _alreadyVoted = true;
-  }
-
-  void voteNo() {
-    _apiClient.sendRequest(SendToAll.voteValue(player, false));
-    _alreadyVoted = true;
-  }
-
-  void _onVoteValue(bool value) {
-    if (value) {
-      _currentYesVotes++;
-    } else {
-      _currentNoVotes++;
-    }
-  }
-
-  void _onCloseVoting(_) {
-    showVoteDialog = false;
   }
 
   void _onError(String value) {
@@ -290,52 +213,6 @@ class GameComponent implements OnActivate {
 
   void _clearError() {
     _error = '';
-  }
-
-  void startRound() => _apiClient.sendRequest(StartRound.request());
-  void submitAnswers() {
-    // Cancel timer in case it wasn't yet.
-    _timer.cancel();
-
-    _submittedAnswers = true;
-    _apiClient.sendRequest(StartValidation.request(categoryToAnswer));
-  }
-
-  void submitValidation() {
-    _apiClient.sendRequest(EndRound.request(playerToCategoryToValid));
-  }
-
-  void updateValidity(String player, String category, bool value) {
-    _playerToCategoryToValid[player][category] = value;
-    syncValidation();
-  }
-
-  void syncValidation() {
-    // Only the host should be syncing validation.
-    if (!isHost) {
-      return;
-    }
-    _apiClient
-        .sendRequest(SendToAll.syncValidation(player, playerToCategoryToValid));
-  }
-
-  void requestForVotes(String category, String player) {
-    // Only the host can request votes.
-    if (!isHost) {
-      return;
-    }
-
-    _apiClient.sendRequest(SendToAll.requestForVotes(
-        player, category, player, playerToCategoryToAnswers[player][category]));
-  }
-
-  void closeVote() {
-    // Only the host can stop voting.
-    if (!isHost) {
-      return;
-    }
-
-    _apiClient.sendRequest(SendToAll.closeVoting(player));
   }
 
   void _scrollToTop() {

@@ -1,0 +1,46 @@
+<!-- Validation results are revealed, current scoreboard, option to start next
+  round -->
+<div class="card">
+  <div class="title" *ngIf="round > 0">
+    Round {{round}} Complete
+  </div>
+
+  <div class="scoreboard">
+    <div class="title">Scoreboard</div>
+    <div *ngIf="!nextRound" class="winner">
+      {{playerToScore.entries.first.key}} won!
+    </div>
+    <ol>
+      <li *ngFor="let entry of playerToScore.entries; let i = index"
+        [class.final-score]="!nextRound"
+        [class.leader]="i == 0">
+        {{entry.key}} - {{entry.value}} points
+      </li>
+    </ol>
+  </div>
+
+  <div class="player-score">
+    <div class="your-score">Your score for the round</div>
+    <div class="answers grid two-columns">
+      <ng-container *ngFor="let category of categories">
+        <div class="category left">{{category}}</div>
+        <div class="right">
+          <div *ngIf="isBlankAnswer(player,category)">--</div>
+          <div *ngIf="!isBlankAnswer(player,category)">
+            {{playerToCategoryToGradedAnswers[player][category].text}}
+            <material-checkbox
+              class="grade"
+              [checked]="playerToCategoryToGradedAnswers[player][category].value >0"
+              disabled>
+            </material-checkbox>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+
+  <material-button class="btn" raised *ngIf="nextRound && isHost" (trigger)="startRound">Next round</material-button>
+  <div class="margin-top" *ngIf="nextRound && !isHost">Only the host can continue</div>
+  <material-button class="btn" raised *ngIf="!nextRound" (trigger)="newGame">Finish</material-button>
+</div>
+

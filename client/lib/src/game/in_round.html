@@ -1,0 +1,21 @@
+<!-- Play game, insert answers -->
+<div class="card">
+  <div class="title">
+    Round {{startRound?.round}} - The letter is {{startRound?.letter}}
+  </div>
+  <div class="timer">{{timeRemaining}}</div>
+  <div class="answers">
+    <div *ngFor="let category of categories" class="answer-input grid
+      two-columns">
+      <span class="category left">{{category}}</span>
+      <material-input class="right" [(ngModel)]="categoryToAnswer[category]" [disabled]="submittedAnswers"></material-input>
+    </div>
+  </div>
+  <material-button *ngIf="!submittedAnswers" class="btn" raised (trigger)="submitAnswers">
+    Lock answers
+  </material-button>
+  <div *ngIf="submittedAnswers" class="answers-locked">
+    Answers locked
+  </div>
+</div>
+

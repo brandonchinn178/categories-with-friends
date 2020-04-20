@@ -8,8 +8,9 @@ import 'api_classes.dart';
 @Injectable()
 class ApiClient {
   final apiHost = window.location.hostname;
+  bool get isLocal => apiHost == 'localhost';
   // Locally use 8000, otherwise when deployed we don't need port.
-  String get _apiPort => apiHost == 'localhost' ? ':8000' : '';
+  String get _apiPort => isLocal ? ':8000' : '';
 
   final _onPlayerList = StreamController<PlayerList>.broadcast();
   Stream<PlayerList> get onPlayerList => _onPlayerList.stream;
@@ -24,8 +25,8 @@ class ApiClient {
   Stream<EndRound> get onEndRound => _onEndRound.stream;
 
   final _onSyncValidation =
-      StreamController<Map<String, Map<String, bool>>>.broadcast();
-  Stream<Map<String, Map<String, bool>>> get onSyncValidation =>
+      StreamController<Map<String, Map<String, int>>>.broadcast();
+  Stream<Map<String, Map<String, int>>> get onSyncValidation =>
       _onSyncValidation.stream;
 
   final _onRequestForVotes = StreamController<Map<String, String>>.broadcast();
@@ -41,6 +42,10 @@ class ApiClient {
   final _onError = StreamController<String>.broadcast();
   Stream<String> get onError => _onError.stream;
 
+  String _host;
+  final _onHostChange = StreamController<String>.broadcast();
+  Stream<String> get onHostChange => _onHostChange.stream;
+
   WebSocket _webSocket;
 
   void init(String gameId, String player) {
@@ -51,6 +56,10 @@ class ApiClient {
   }
 
   void sendRequest(String json) {
+    if (isLocal) {
+      print('Request: $json');
+    }
+
     if (_webSocket != null && _webSocket.readyState == WebSocket.OPEN) {
       _webSocket.send(json);
     } else {
@@ -59,6 +68,10 @@ class ApiClient {
   }
 
   void _routeResponse(String json) {
+    if (isLocal) {
+      print('Response: $json');
+    }
+
     final object = jsonDecode(json);
     String error = object['error'];
     if (isNotBlank(error)) {
@@ -74,6 +87,12 @@ class ApiClient {
         default:
           throw ArgumentError('Error $error is unhandled');
       }
+    }
+
+    final receivedHost = object['host'];
+    if (receivedHost != _host) {
+      _host = receivedHost;
+      _onHostChange.add(_host);
     }
 
     final event = object['event'];

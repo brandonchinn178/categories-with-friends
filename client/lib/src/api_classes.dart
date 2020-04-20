@@ -71,10 +71,10 @@ class Answer {
   String _text;
   String get text => _text;
 
-  bool _valid;
-  bool get valid => _valid;
+  int _value;
+  int get value => _value;
 
-  Answer(this._text, this._valid);
+  Answer(this._text, this._value);
 }
 
 class EndRound {
@@ -100,7 +100,7 @@ class EndRound {
       Map<String, Answer> categoryToGradedAnswer =
           Map.fromIterable(entry.value.entries,
               key: (entry) => entry.key,
-              // entry.value: Tuple (String answerText, bool valid)
+              // entry.value: Tuple (String answerText, int value)
               value: (entry) => Answer(entry.value[0], entry.value[1]));
       ;
       _playerToCategoryToGradedAnswers[player] = categoryToGradedAnswer;
@@ -110,11 +110,10 @@ class EndRound {
     _nextRound = object['next_round'];
   }
 
-  static String request(
-      Map<String, Map<String, bool>> playerToCategoryToValid) {
+  static String request(Map<String, Map<String, int>> playerToCategoryToValue) {
     final object = {
       'event': 'end_validation',
-      'votes': playerToCategoryToValid
+      'scores': playerToCategoryToValue
     };
     return jsonEncode(object);
   }
@@ -134,12 +133,12 @@ class SendToAll {
 
   // Sent as JSON to server
   static String syncValidation(
-      String sender, Map<String, Map<String, bool>> playerToCategoryToValid) {
+      String sender, Map<String, Map<String, int>> playerToCategoryToValue) {
     final object = {
       'event': event,
       'payload': {
         'type': syncValidationType,
-        'answers': playerToCategoryToValid,
+        'answers': playerToCategoryToValue,
         'sender': sender,
       },
     };
@@ -147,16 +146,16 @@ class SendToAll {
   }
 
   // Received from server
-  // Returns (Player -> Category -> Valid)
-  static Map<String, Map<String, bool>> parseSyncValidation(
+  // Returns (Player -> Category -> Value)
+  static Map<String, Map<String, int>> parseSyncValidation(
       Map<String, dynamic> object) {
     Map<String, dynamic> answers = object['payload']['answers'];
-    final result = <String, Map<String, bool>>{};
+    final result = <String, Map<String, int>>{};
 
     for (final entry in answers.entries) {
       final player = entry.key;
-      Map<String, bool> categoryToValid = entry.value.cast<String, bool>();
-      result[player] = categoryToValid;
+      Map<String, int> categoryToValue = entry.value.cast<String, int>();
+      result[player] = categoryToValue;
     }
     return result;
   }
