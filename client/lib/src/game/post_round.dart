@@ -45,7 +45,8 @@ class PostRoundComponent {
   set endRound(EndRound value) {
     _playerToCategoryToGradedAnswers = value.playerToCategoryToGradedAnswers;
     _players = _playerToCategoryToGradedAnswers.keys.toList();
-    _categories = _playerToCategoryToGradedAnswers.values.first.keys.toList();
+    _categories = _playerToCategoryToGradedAnswers.values.first.keys.toList()
+      ..sort();
 
     // Temp storage of unsorted map.
     final unsorted = value.playerToScore;

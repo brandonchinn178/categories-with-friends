@@ -30,7 +30,7 @@
             {{playerToCategoryToGradedAnswers[player][category].text}}
             <material-checkbox
               class="grade"
-              [checked]="playerToCategoryToGradedAnswers[player][category].valid"
+              [checked]="playerToCategoryToGradedAnswers[player][category].value >0"
               disabled>
             </material-checkbox>
           </div>

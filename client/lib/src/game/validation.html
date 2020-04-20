@@ -27,9 +27,9 @@
       <div>
         <material-checkbox
           class="grade"
-          [checked]="playerToCategoryToValid[player][category]"
+          [checked]="playerToCategoryToValue[player][category] > 0"
           (checkedChange)="updateValidity(player, category, $event)"
-          [disabled]="!isHost">
+          [disabled]="!isHost || isBlankAnswer(player,category)">
         </material-checkbox>
         <!-- Link to google search -->
         <a [href]="googleUrl(answer(player,category))" target="_blank"

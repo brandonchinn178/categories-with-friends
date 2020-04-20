@@ -49,17 +49,17 @@ class ValidationComponent {
   @Input()
   set startValidation(StartValidation value) {
     _playerToCategoryToAnswers = value.playerToCategoryToAnswers;
-    _playerToCategoryToValid = {};
+    _playerToCategoryToValue = {};
 
     _players = _playerToCategoryToAnswers.keys.toList();
-    _categories = _playerToCategoryToAnswers.values.first.keys.toList();
+    _categories = _playerToCategoryToAnswers.values.first.keys.toList()..sort();
 
     for (final player in players) {
       for (final category in categories) {
-        // Initialize validity to true, unless answer is blank.
-        _playerToCategoryToValid[player] ??= {};
-        _playerToCategoryToValid[player][category] =
-            !isBlankAnswer(player, category);
+        // Initialize score to 1, unless answer is blank.
+        _playerToCategoryToValue[player] ??= {};
+        _playerToCategoryToValue[player][category] =
+            isBlankAnswer(player, category) ? 0 : 1;
       }
     }
   }
@@ -81,9 +81,10 @@ class ValidationComponent {
   bool isBlankAnswer(String player, String category) =>
       isBlank(answer(player, category));
 
-  Map<String, Map<String, bool>> _playerToCategoryToValid = {};
-  Map<String, Map<String, bool>> get playerToCategoryToValid =>
-      _playerToCategoryToValid;
+  // Value is the point value of their answer. Generally should be 0,1,2.
+  Map<String, Map<String, int>> _playerToCategoryToValue = {};
+  Map<String, Map<String, int>> get playerToCategoryToValue =>
+      _playerToCategoryToValue;
 
   bool _submittedAnswers = false;
   bool get submittedAnswers => _submittedAnswers;
@@ -123,10 +124,10 @@ class ValidationComponent {
   }
 
   void _onSyncValidation(
-      Map<String, Map<String, bool>> playerToCategoryToValid) {
+      Map<String, Map<String, int>> playerToCategoryToValue) {
     // Host sent out the data in the first place
     if (isHost) return;
-    _playerToCategoryToValid = playerToCategoryToValid;
+    _playerToCategoryToValue = playerToCategoryToValue;
   }
 
   // Returns {'category': _, 'player': _, 'answer': _}
@@ -163,11 +164,12 @@ class ValidationComponent {
   }
 
   void submitValidation() {
-    _apiClient.sendRequest(EndRound.request(playerToCategoryToValid));
+    _apiClient.sendRequest(EndRound.request(playerToCategoryToValue));
   }
 
-  void updateValidity(String player, String category, bool value) {
-    _playerToCategoryToValid[player][category] = value;
+  // TODO: Ability to set values of 2.
+  void updateValidity(String player, String category, bool checked) {
+    _playerToCategoryToValue[player][category] = checked ? 1 : 0;
     syncValidation();
   }
 
@@ -177,7 +179,7 @@ class ValidationComponent {
       return;
     }
     _apiClient
-        .sendRequest(SendToAll.syncValidation(player, playerToCategoryToValid));
+        .sendRequest(SendToAll.syncValidation(player, playerToCategoryToValue));
   }
 
   void requestForVotes(String category, String player) {
