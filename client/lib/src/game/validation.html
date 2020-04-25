@@ -25,12 +25,26 @@
         </span>
       </div>
       <div>
-        <material-checkbox
-          class="grade"
-          [checked]="playerToCategoryToValue[player][category] > 0"
-          (checkedChange)="updateValidity(player, category, $event)"
-          [disabled]="!isHost || isBlankAnswer(player,category)">
-        </material-checkbox>
+        <div class="grades">
+          <material-button class="grade"
+                           [class.selected]="playerToCategoryToValue[player][category] == 0"
+                           (trigger)="updateValidity(player,category,0)"
+                           [disabled]="!isHost || isBlankAnswer(player,category)">
+            <material-icon icon="exposure_zero"></material-icon>
+          </material-button>
+          <material-button class="grade"
+                           [class.selected]="playerToCategoryToValue[player][category] == 1"
+                           (trigger)="updateValidity(player,category,1)"
+                           [disabled]="!isHost || isBlankAnswer(player,category)">
+            <material-icon icon="exposure_plus_1"></material-icon>
+          </material-button>
+          <material-button class="grade"
+                           [class.selected]="playerToCategoryToValue[player][category] == 2"
+                           (trigger)="updateValidity(player,category,2)"
+                           [disabled]="!isHost || isBlankAnswer(player,category)">
+            <material-icon icon="exposure_plus_2"></material-icon>
+          </material-button>
+        </div>
         <!-- Link to google search -->
         <a [href]="googleUrl(answer(player,category))" target="_blank"
                    class="google-link">

@@ -79,9 +79,16 @@ material-button.btn {
   margin-bottom: 16px;
 }
 
-material-checkbox.grade {
-  margin: 0 0 0 16px;
-  vertical-align: middle;
+material-button.grade {
+  material-icon {
+    // margin: 0 0 0 16px;
+    // vertical-align: middle;
+    color: grey;
+
+    &.selected {
+      color: black;
+    }
+  }
 }
 
 .winner {
