@@ -14,6 +14,7 @@ module CategoriesWithFriends.Game.Round
     -- * Actions
   , generateRound
   , addAnswers
+  , forceLockAnswers
   , rateAnswers
   ) where
 
@@ -124,6 +125,12 @@ addAnswers playerName playerAnswers gameRound =
   where
     updateRound (Right lockedAnswers) = Right gameRound { answers = lockedAnswers }
     updateRound (Left updatedAnswers) = Left gameRound { answers = updatedAnswers }
+
+-- | Force lock the answers of everyone who hasn't answered yet.
+forceLockAnswers :: GameRound 'RoundBeingAnswered -> GameRound 'RoundBeingRated
+forceLockAnswers gameRound = updateRound . Answer.forceLockAnswers . answers $ gameRound
+  where
+    updateRound lockedAnswers = gameRound { answers = lockedAnswers }
 
 -- | Set the given ratings for the players' answers. Errors if an answer for a
 -- player and category does not exist in the input.
