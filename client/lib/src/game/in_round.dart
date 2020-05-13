@@ -10,7 +10,8 @@ import '../api_client.dart';
 import '../api_classes.dart';
 import '../routes.dart';
 
-const second = const Duration(seconds: 1);
+// Check the timer every 100 ms so we can update it accurately.
+const timePeriod = const Duration(milliseconds: 100);
 
 @Component(
   selector: 'in-round',
@@ -26,23 +27,24 @@ class InRoundComponent {
   set startRound(StartRound value) {
     _startRound = value;
 
-    // In case the user reloads the page, calculate the end time.
-    final durationRemaining = value.endTime.difference(DateTime.now().toUtc());
-    _secondsRemaining = durationRemaining.inSeconds;
+    _utcEndTime = value.endTime;
 
-    if (_secondsRemaining <= 0) {
+    final currentTime = _currentUtcTime();
+    if (_utcEndTime.isBefore(currentTime)) {
       submitAnswers();
     }
 
-    _timeRemaining = _calculateTimeRemaining();
+    _timeRemaining = _calculateTimeRemaining(currentTime);
 
     _categoryToAnswer = {for (final category in value.categories) category: ''};
 
-    _timer = Timer.periodic(second, _updateTimer);
+    _timer = Timer.periodic(timePeriod, _updateTimer);
     _submittedAnswers = false;
   }
 
   InRoundComponent(this._apiClient);
+
+  DateTime _currentUtcTime() => DateTime.now().toUtc();
 
   StartRound _startRound;
   StartRound get startRound => _startRound;
@@ -51,7 +53,7 @@ class InRoundComponent {
   final ApiClient _apiClient;
 
   Timer _timer;
-  int _secondsRemaining;
+  DateTime _utcEndTime;
   String _timeRemaining = '';
   String get timeRemaining => _timeRemaining;
 
@@ -61,27 +63,38 @@ class InRoundComponent {
   Map<String, String> _categoryToAnswer = {};
   Map<String, String> get categoryToAnswer => _categoryToAnswer;
 
-  String _calculateTimeRemaining() {
-    String _minutesToDisplay = '${(_secondsRemaining / 60).floor()}';
-    String _secondsToDisplay = '${_secondsRemaining % 60}';
-    return '${_minutesToDisplay.padLeft(2, '0')}:'
-        '${_secondsToDisplay.padLeft(2, '0')}';
+  int _calculateSecondsRemaining(DateTime currentTime, DateTime endTime) {
+    final durationRemaining = endTime.difference(currentTime);
+    return durationRemaining.inSeconds;
+  }
+
+  // Compare inputted current time to the end time.
+  String _calculateTimeRemaining(DateTime currentUtcTime) {
+    final secondsRemaining =
+        _calculateSecondsRemaining(currentUtcTime, _utcEndTime);
+    String minutesToDisplay = '${(secondsRemaining / 60).floor()}';
+    String secondsToDisplay = '${secondsRemaining % 60}';
+    return '${minutesToDisplay.padLeft(2, '0')}:'
+        '${secondsToDisplay.padLeft(2, '0')}';
   }
 
   // Called once every second.
   String _updateTimer(Timer timer) {
-    _secondsRemaining--;
-    _timeRemaining = _calculateTimeRemaining();
-    if (_secondsRemaining == 0) {
+    final currentTime = _currentUtcTime();
+    _timeRemaining = _calculateTimeRemaining(currentTime);
+    final secondsRemaining =
+        _calculateSecondsRemaining(currentTime, _utcEndTime);
+
+    if (secondsRemaining == 0) {
       timer.cancel();
-      submitAnswers();
+
+      if (!_submittedAnswers) {
+        submitAnswers();
+      }
     }
   }
 
   void submitAnswers() {
-    // Cancel timer in case it wasn't yet.
-    _timer.cancel();
-
     _submittedAnswers = true;
     _apiClient.sendRequest(StartValidation.request(categoryToAnswer));
   }
