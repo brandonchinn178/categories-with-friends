@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -20,7 +21,7 @@ import Data.Aeson (FromJSON, ToJSON, eitherDecode', encode)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
-import Data.Time (addUTCTime, getCurrentTime)
+import Data.Time (UTCTime, addUTCTime, getCurrentTime)
 import Network.WebSockets
     ( Connection
     , ConnectionException(..)
@@ -28,6 +29,7 @@ import Network.WebSockets
     , sendTextData
     , withPingThread
     )
+import System.Timeout (timeout)
 
 import CategoriesWithFriends.ActiveGame (ActiveGame(..))
 import CategoriesWithFriends.Errors (ServerError(..))
@@ -36,7 +38,7 @@ import CategoriesWithFriends.Game
 import CategoriesWithFriends.Game.Answer (Answer, AnswerRatings)
 import CategoriesWithFriends.Game.Category (Category)
 import CategoriesWithFriends.Game.Player (PlayerName)
-import CategoriesWithFriends.Game.Round (GameRoundStatus(..))
+import CategoriesWithFriends.Game.Round (GameRoundInfo(..), GameRoundStatus(..))
 import CategoriesWithFriends.Logging (debugT, errorT)
 import CategoriesWithFriends.Messages (Message(..))
 
@@ -54,24 +56,38 @@ servePlayer activeGameVar playerName playerConn cleanupGame =
   handle (sendErrorToClientThen $ pure ()) $ do
     modifyMVar_ activeGameVar $ setupPlayer playerName playerConn
 
-    withPingThread playerConn pingDelay postPing $ runLoop $ do
-      event <- receiveJSONData playerConn
-      debugT $ "Player " ++ show playerName ++ " sent: " ++ show event
+    withPingThread playerConn pingDelay postPing $ runLoop $
+      -- check every five seconds for active player
+      timeout 5000000 (receiveJSONData playerConn) >>= \case
+        Nothing -> modifyMVar_ activeGameVar $ \activeGame@ActiveGame{game} ->
+          case getState game of
+            GameRoundBeingAnswered{} -> do
+              -- check if round ended over 5 seconds ago
+              -- if so, and if player hasn't answered yet, register their
+              -- answers as no answers
+              hasRoundExpired <- timeIsEarlierThan 5 . deadline . getRoundInfo $ game
+              if hasRoundExpired
+                then setGameAndMessageAll (forceLockAnswers game) startValidationMessage activeGame
+                else return activeGame
+            _ -> return activeGame
 
-      case event of
-        StartRoundEvent ->
-          handleEventOnlyHost startGameRound
-        SubmitAnswersEvent playerAnswers ->
-          handleEvent $ registerAnswers playerName playerAnswers
-        EndValidationEvent ratings ->
-          handleEventOnlyHost $ registerRatings ratings
-        SendToAllEvent payload ->
-          handleEvent $ \activeGame@ActiveGame{game} -> do
-            sendToAll activeGame $ SendToAllMessage
-              { host = getHost game
-              , payload = payload
-              }
-            return activeGame
+        Just event -> do
+          debugT $ "Player " ++ show playerName ++ " sent: " ++ show event
+
+          case event of
+            StartRoundEvent ->
+              handleEventOnlyHost startGameRound
+            SubmitAnswersEvent playerAnswers ->
+              handleEvent $ registerAnswers playerName playerAnswers
+            EndValidationEvent ratings ->
+              handleEventOnlyHost $ registerRatings ratings
+            SendToAllEvent payload ->
+              handleEvent $ \activeGame@ActiveGame{game} -> do
+                sendToAll activeGame $ SendToAllMessage
+                  { host = getHost game
+                  , payload = payload
+                  }
+                return activeGame
   where
     pingDelay = 30 -- seconds
     postPing = return ()
@@ -116,10 +132,14 @@ servePlayer activeGameVar playerName playerConn cleanupGame =
       return $ activeGame { activePlayers = updatedActivePlayers }
 
 hasTimedOut :: ActiveGame -> IO Bool
-hasTimedOut ActiveGame{startTime} = do
+hasTimedOut = timeIsEarlierThan 3600 . startTime
+
+-- | Return True if the given time is past the given duration (in
+-- seconds) ago.
+timeIsEarlierThan :: Int -> UTCTime -> IO Bool
+timeIsEarlierThan duration time = do
   now <- getCurrentTime
-  let timeout = 3600 -- 1 hour
-  return $ addUTCTime timeout startTime < now
+  return $ addUTCTime (fromIntegral duration) time < now
 
 {- Game mechanics -}
 

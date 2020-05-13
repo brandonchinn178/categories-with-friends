@@ -18,6 +18,7 @@ module CategoriesWithFriends.Game.Answer
   , initAnswers
   , AnswersForPlayer
   , addAnswers
+  , forceLockAnswers
   , AnswerRatings
   , rateAnswers
   ) where
@@ -101,10 +102,17 @@ tryLockAnswers = traverse tryLockByCategory
   where
     tryLockByCategory = traverse tryLockAnswer
 
-    tryLockAnswer :: AnswerInfo 'AnswersAccepted -> Maybe (AnswerInfo 'AnswersLocked)
-    tryLockAnswer = \case
-      MaybeAnswer (Just answer) -> Just $ LockedAnswer answer
-      MaybeAnswer Nothing -> Nothing
+-- | Force lock the answers of everyone who hasn't answered yet.
+forceLockAnswers :: PlayerAnswers 'AnswersAccepted -> PlayerAnswers 'AnswersLocked
+forceLockAnswers = PlayerAnswers . fmap lockByCategory . unPlayerAnswers
+  where
+    -- just throw out any categories a player hasn't answered yet
+    lockByCategory = Map.mapMaybe tryLockAnswer
+
+tryLockAnswer :: AnswerInfo 'AnswersAccepted -> Maybe (AnswerInfo 'AnswersLocked)
+tryLockAnswer = \case
+  MaybeAnswer (Just answer) -> Just $ LockedAnswer answer
+  MaybeAnswer Nothing -> Nothing
 
 type AnswerRatings = PlayerAnswersMap Int
 
