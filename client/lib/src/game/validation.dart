@@ -167,9 +167,8 @@ class ValidationComponent {
     _apiClient.sendRequest(EndRound.request(playerToCategoryToValue));
   }
 
-  // TODO: Ability to set values of 2.
-  void updateValidity(String player, String category, bool checked) {
-    _playerToCategoryToValue[player][category] = checked ? 1 : 0;
+  void updateValidity(String player, String category, int value) {
+    _playerToCategoryToValue[player][category] = value;
     syncValidation();
   }
 

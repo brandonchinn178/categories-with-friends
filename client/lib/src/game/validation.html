@@ -5,6 +5,8 @@
   </div>
   <div class="description">
     Share your answers and discuss which ones should not count. Only the host can mark answers as invalid.
+    Answers with alliteration can count as 2 points (words starting with the
+    same letter).
   </div>
 
   <div *ngFor="let category of categories" class="grid three-columns">
@@ -13,10 +15,10 @@
     <div><!-- Placeholder for grid --></div>
 
     <ng-container *ngFor="let player of players">
-      <div>
+      <div class="player-container">
         {{player}}
       </div>
-      <div>
+      <div class="answer-container">
         <span *ngIf="isBlankAnswer(player, category)" class="answer">
           --
         </span>
@@ -25,12 +27,27 @@
         </span>
       </div>
       <div>
-        <material-checkbox
-          class="grade"
-          [checked]="playerToCategoryToValue[player][category] > 0"
-          (checkedChange)="updateValidity(player, category, $event)"
-          [disabled]="!isHost || isBlankAnswer(player,category)">
-        </material-checkbox>
+        <div class="grades">
+          <material-button class="grade"
+                           [class.selected]="playerToCategoryToValue[player][category] == 0"
+                           (trigger)="updateValidity(player,category,0)"
+                           [disabled]="!isHost || isBlankAnswer(player,category)">
+            <material-icon icon="exposure_zero" size="medium"
+              ></material-icon>
+          </material-button>
+          <material-button class="grade"
+                           [class.selected]="playerToCategoryToValue[player][category] == 1"
+                           (trigger)="updateValidity(player,category,1)"
+                           [disabled]="!isHost || isBlankAnswer(player,category)">
+            <material-icon icon="exposure_plus_1" size="medium"></material-icon>
+          </material-button>
+          <material-button class="grade"
+                           [class.selected]="playerToCategoryToValue[player][category] == 2"
+                           (trigger)="updateValidity(player,category,2)"
+                           [disabled]="!isHost || isBlankAnswer(player,category)">
+            <material-icon icon="exposure_plus_2" size="medium"></material-icon>
+          </material-button>
+        </div>
         <!-- Link to google search -->
         <a [href]="googleUrl(answer(player,category))" target="_blank"
                    class="google-link">

@@ -1,7 +1,10 @@
 <!-- Play game, insert answers -->
 <div class="card">
   <div class="title">
-    Round {{startRound?.round}} - The letter is {{startRound?.letter}}
+    Round {{startRound?.round}} - The letter is
+    <span class="letter">
+      {{startRound?.letter}}
+    </span>
   </div>
   <div class="timer">{{timeRemaining}}</div>
   <div class="answers">

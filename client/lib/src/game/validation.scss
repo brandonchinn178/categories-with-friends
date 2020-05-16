@@ -9,7 +9,7 @@
   }
 
   &.three-columns {
-    grid-template-columns: 40% 30% auto;
+    grid-template-columns: 33% auto 230px;
   }
 
   grid-gap: 8px;
@@ -79,9 +79,28 @@ material-button.btn {
   margin-bottom: 16px;
 }
 
-material-checkbox.grade {
-  margin: 0 0 0 16px;
-  vertical-align: middle;
+.grades {
+  display: inline-block;
+
+  material-button.grade {
+    background-color: initial;
+    border: 1px black none;
+    min-width: inherit;
+
+    material-icon {
+      // margin: 0 0 0 16px;
+      // vertical-align: middle;
+      color: grey;
+    }
+
+    &.selected {
+      border-style: solid;
+
+      material-icon {
+        color: black;
+      }
+    }
+  }
 }
 
 .winner {
@@ -94,6 +113,7 @@ material-checkbox.grade {
 }
 
 .google-link {
+  color: initial;
   text-decoration: none;
 
   material-icon {
@@ -125,4 +145,10 @@ material-button.request-votes {
   .votes-no {
     color: #630303;
   }
+}
+
+.player-container {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
