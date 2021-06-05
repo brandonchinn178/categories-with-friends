@@ -4,7 +4,7 @@ A web project running a multiplayer game that's definitely not Scattergories.
 
 ## Quickstart
 
-1. Install language tools
+1. Install language tools.
     1. Install Dart
         ```bash
         brew tap dart-lang/dart
